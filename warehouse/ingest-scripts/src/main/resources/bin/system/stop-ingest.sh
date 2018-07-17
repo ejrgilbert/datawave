@@ -9,6 +9,8 @@ else
 fi
 THIS_DIR="${THIS_SCRIPT%/*}"
 cd $THIS_DIR
+script_name=$(basename ${0})
+
 #stop scripts do not require force despite lock files
 . ../ingest/ingest-env.sh -force
 
@@ -25,7 +27,7 @@ else
   trap 'rm -f "$ingestHost"; exit $?' INT TERM EXIT
   echo $INGEST_HOST > $ingestHost
 
-  pdsh -f 25 -w ^${ingestHost} "$INGEST_BIN/ingest/stop-ingesters.sh $@" < /dev/null
+  pdsh -f 25 -w ^${ingestHost} "$INGEST_BIN/ingest/stop-ingesters.sh $@" < /dev/null 2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/stderr) | dshbak -f -d /tmp/pdsh_log/${script_name}/stdout
 
   rm $ingestHost
   trap - INT TERM EXIT
