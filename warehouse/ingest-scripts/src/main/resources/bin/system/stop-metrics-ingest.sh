@@ -12,7 +12,7 @@ cd $THIS_DIR
 script_name=$(basename ${0})
 
 #stop scripts do not require force despite lock files
-#. ../ingest/ingest-env.sh -force
+. ../ingest/ingest-env.sh -force
 
 export METRICS_BIN=$THIS_DIR/..
 
