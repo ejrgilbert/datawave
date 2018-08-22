@@ -1,239 +1,86 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <groupId>org.springframework.boot</groupId>
-        <version>1.5.13.RELEASE</version>
-        <relativePath />
-        <!-- lookup parent from repository -->
-    </parent>
-    <groupId>datawave.microservice</groupId>
-    <artifactId>datawave-external-services</artifactId>
-    <version>2.2.0-SNAPSHOT</version>
+    <groupId>gov.nsa.datawave.microservice</groupId>
+    <artifactId>datawave-microservice-parent</artifactId>
+    <version>1.3-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <modules>
-        <module>common</module>
-        <module>authorization-service</module>
-        <module>config-service</module>
-        <module>audit</module>
-        <module>hazelcast</module>
-    </modules>
+    <name>DataWave Microservices Parent</name>
+    <description>DataWave mircoservices provide functionality previously contained in the DataWave
+        Wildfly web service. Over time, more and more code will be moved out of the web service and
+        into microservices.</description>
+    <url>http://code.nsa.gov/datawave</url>
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <scm>
+        <connection>scm:git:https://github.com/NationalSecurityAgency/datawave.git</connection>
+        <developerConnection>scm:git:git@github.com:NationalSecurityAgency/datawave.git</developerConnection>
+        <url>https://github.com/NationalSecurityAgency/datawave</url>
+    </scm>
+    <distributionManagement>
+        <repository>
+            <!-- NOTE: This section can go away once we are able to publish artifacts to maven central. -->
+            <id>internal.repo</id>
+            <name>Temporary Staging Repository</name>
+            <url>file://${project.build.directory}/mvn-repo</url>
+        </repository>
+    </distributionManagement>
     <properties>
         <docker.image.prefix>datawave/</docker.image.prefix>
-        <eclipseFormatterStyle>${datawave.root}/../contrib/Eclipse-Datawave-Codestyle.xml</eclipseFormatterStyle>
-        <hazelcast.version>3.9</hazelcast.version>
         <java.version>1.8</java.version>
-        <version.accumulo>1.8.1</version.accumulo>
-        <version.datawave>2.2.0-SNAPSHOT</version.datawave>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <version.docker.plugin>1.0.0</version.docker.plugin>
-        <version.spring.boot>1.5.13.RELEASE</version.spring.boot>
-        <version.spring.cloud>Edgware.SR3</version.spring.cloud>
     </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.jcraft</groupId>
-                <artifactId>jzlib</artifactId>
-                <version>1.1.3</version>
-            </dependency>
-            <dependency>
-                <groupId>com.ryantenney.metrics</groupId>
-                <artifactId>metrics-spring</artifactId>
-                <version>3.1.3</version>
-            </dependency>
-            <dependency>
-                <groupId>datawave.microservice</groupId>
-                <artifactId>common</artifactId>
-                <version>${version.datawave}</version>
-            </dependency>
-            <dependency>
-                <groupId>datawave.microservice</groupId>
-                <artifactId>hazelcast-client</artifactId>
-                <version>${version.datawave}</version>
-            </dependency>
-            <dependency>
-                <groupId>datawave.webservices</groupId>
-                <artifactId>datawave-ws-client</artifactId>
-                <version>${version.datawave}</version>
-                <exclusions>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>org.slf4j</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>io.netty</groupId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>datawave.webservices</groupId>
-                <artifactId>datawave-ws-common</artifactId>
-                <version>${version.datawave}</version>
-                <exclusions>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>*</groupId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>datawave.webservices</groupId>
-                <artifactId>datawave-ws-common-util</artifactId>
-                <version>${version.datawave}</version>
-                <exclusions>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>org.jboss.resteasy</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>org.jboss.spec.javax.annotation</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>org.jboss.spec.javax.ejb</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>org.jboss.spec.javax.interceptor</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>org.jboss.spec.javax.servlet</groupId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>datawave.webservices</groupId>
-                <artifactId>datawave-ws-security</artifactId>
-                <version>${version.datawave}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt</artifactId>
-                <version>0.7.0</version>
-            </dependency>
-            <dependency>
-                <groupId>io.springfox</groupId>
-                <artifactId>springfox-swagger-ui</artifactId>
-                <version>2.6.1</version>
-            </dependency>
-            <dependency>
-                <groupId>io.springfox</groupId>
-                <artifactId>springfox-swagger2</artifactId>
-                <version>2.6.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.accumulo</groupId>
-                <artifactId>accumulo-core</artifactId>
-                <version>${version.accumulo}</version>
-                <exclusions>
-                    <exclusion>
-                        <artifactId>hadoop-client</artifactId>
-                        <groupId>org.apache.hadoop</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>zookeeper</artifactId>
-                        <groupId>org.apache.zookeeper</groupId>
-                    </exclusion>
-                    <!-- conflicts with CDH 5.7.0 Htrace -->
-                    <exclusion>
-                        <artifactId>htrace-core</artifactId>
-                        <groupId>org.apache.htrace</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>junit</artifactId>
-                        <groupId>junit</groupId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.accumulo</groupId>
-                <artifactId>accumulo-minicluster</artifactId>
-                <version>${version.accumulo}</version>
-                <exclusions>
-                    <exclusion>
-                        <artifactId>commons-logging</artifactId>
-                        <groupId>commons-logging</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>org.slf4j</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>io.netty</groupId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.jboss.resteasy</groupId>
-                <artifactId>resteasy-jaxrs</artifactId>
-                <version>3.0.19.Final</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter</artifactId>
-                <version>${version.spring.boot}</version>
-                <exclusions>
-                    <exclusion>
-                        <artifactId>commons-logging</artifactId>
-                        <groupId>commons-logging</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>spring-boot-starter-logging</artifactId>
-                        <groupId>org.springframework.boot</groupId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${version.spring.cloud}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>datawave</groupId>
-                <artifactId>datawave-common-test</artifactId>
-                <version>${version.datawave}</version>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.12</version>
                 <scope>test</scope>
-                <exclusions>
-                    <exclusion>
-                        <artifactId>commons-logging</artifactId>
-                        <groupId>commons-logging</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>org.slf4j</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>*</artifactId>
-                        <groupId>io.netty</groupId>
-                    </exclusion>
-                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>datawave</groupId>
-            <artifactId>datawave-common-test</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <!-- includes test libraries (forcing the test scope) for all modules -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <repositories>
+        <repository>
+            <!--
+                This repository is a temporary work-around until we can public artifacts to maven central.
+                This allows us to retrieve released microservice artifacts from our github repository.
+            -->
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>datawave-github-mvn-repo</id>
+            <url>https://raw.githubusercontent.com/NationalSecurityAgency/datawave/mvn-repo</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <!--
+            This is a temporary work-around until we can publish artifacts to maven central.
+            This allows us to download the read-properties and assert-properties plugins, as
+            well as the datawave code style template for the formatter-maven-plugin.
+        -->
+        <pluginRepository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>datawave-github-mvn-repo</id>
+            <url>https://raw.githubusercontent.com/NationalSecurityAgency/datawave/mvn-repo</url>
+        </pluginRepository>
+    </pluginRepositories>
     <build>
         <pluginManagement>
             <plugins>
@@ -308,8 +155,15 @@
                             </goals>
                         </execution>
                     </executions>
+                    <dependencies>
+                        <dependency>
+                            <groupId>gov.nsa.datawave</groupId>
+                            <artifactId>datawave-code-style</artifactId>
+                            <version>1.0</version>
+                        </dependency>
+                    </dependencies>
                     <configuration>
-                        <configFile>${eclipseFormatterStyle}</configFile>
+                        <configFile>eclipse/Eclipse-Datawave-Codestyle.xml</configFile>
                         <lineEnding>LF</lineEnding>
                         <overrideConfigCompilerVersion>true</overrideConfigCompilerVersion>
                         <compilerSource>${maven.compiler.source}</compilerSource>
@@ -318,26 +172,47 @@
                     </configuration>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-help-plugin</artifactId>
+                    <version>2.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>2.7</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>2.4</version>
+                </plugin>
+                <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>rpm-maven-plugin</artifactId>
                     <version>2.1.5</version>
                 </plugin>
                 <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                    <configuration>
-                        <!-- Mark the repackaged executable jar with the "exec" classifier -->
-                        <classifier>exec</classifier>
-                        <!-- Make the jar fully executable so it can be used as an init.d script -->
-                        <executable>true</executable>
-                    </configuration>
-                </plugin>
-                <plugin>
                     <groupId>pl.project13.maven</groupId>
                     <artifactId>git-commit-id-plugin</artifactId>
+                    <version>2.2.3</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>revision</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                     <configuration>
                         <verbose>false</verbose>
-                        <dotGitDirectory>${datawave.root}/../.git</dotGitDirectory>
+                        <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
+                        <failOnNoGitDirectory>true</failOnNoGitDirectory>
+                        <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                        <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
                         <gitDescribe>
                             <skip>true</skip>
                         </gitDescribe>
@@ -347,22 +222,63 @@
         </pluginManagement>
         <plugins>
             <plugin>
-                <groupId>org.commonjava.maven.plugins</groupId>
-                <artifactId>directory-maven-plugin</artifactId>
-                <version>0.1</version>
+                <!-- NOTE: This plugin can go away once we are able to publish artifacts to maven central. -->
+                <groupId>com.github.github</groupId>
+                <artifactId>site-maven-plugin</artifactId>
+                <version>0.12</version>
+                <executions>
+                    <!-- run site-maven-plugin's 'site' target as part of the build's normal 'deploy' phase -->
+                    <execution>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>site</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <message>Maven artifacts for ${project.name} ${project.version}</message>
+                    <!-- git commit message -->
+                    <noJekyll>true</noJekyll>
+                    <!-- disable webpage processing -->
+                    <outputDirectory>${project.build.directory}/mvn-repo</outputDirectory>
+                    <!-- matches distribution management repository url above -->
+                    <branch>refs/heads/mvn-repo</branch>
+                    <!-- remote branch name -->
+                    <includes>
+                        <include>**/*</include>
+                    </includes>
+                    <merge>true</merge>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- NOTE: This plugin can go away once we are able to publish artifacts to maven central. -->
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.8.2</version>
+                <configuration>
+                    <altDeploymentRepository>internal.repo::default::file://${project.build.directory}/mvn-repo</altDeploymentRepository>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>1.4.1</version>
                 <executions>
                     <execution>
-                        <id>directories</id>
-                        <phase>initialize</phase>
+                        <id>enforce-no-snapshots</id>
                         <goals>
-                            <goal>directory-of</goal>
+                            <goal>enforce</goal>
                         </goals>
                         <configuration>
-                            <property>datawave.root</property>
-                            <project>
-                                <groupId>datawave.microservice</groupId>
-                                <artifactId>datawave-external-services</artifactId>
-                            </project>
+                            <rules>
+                                <requireReleaseDeps>
+                                    <message>Snapshot dependencies are prohibited on a release build.</message>
+                                    <onlyWhenRelease>true</onlyWhenRelease>
+                                </requireReleaseDeps>
+                                <requireJavaVersion>
+                                    <version>${java.version}</version>
+                                </requireJavaVersion>
+                            </rules>
+                            <fail>true</fail>
                         </configuration>
                     </execution>
                 </executions>
@@ -424,6 +340,9 @@
                     </plugin>
                 </plugins>
             </build>
+            <properties>
+                <os.detected.classifier>linux-x86_64-fedora</os.detected.classifier>
+            </properties>
         </profile>
         <!-- The dist profile (activated with -Ddist) triggers building of source and javadoc artifacts. -->
         <profile>
@@ -438,6 +357,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.0.1</version>
                         <executions>
                             <!-- build javadoc jars per module for publishing to the repo -->
                             <execution>
@@ -449,9 +369,30 @@
                                 <configuration>
                                     <encoding>UTF-8</encoding>
                                     <destDir>${project.build.directory}/apidocs</destDir>
-                                    <javadocVersion>1.8</javadocVersion>
+                                    <javadocVersion>1.8.0</javadocVersion>
                                     <additionalJOption>-J-Xmx768m</additionalJOption>
-                                    <additionalparam>-tag "HTTP:m:HTTP Return Codes" -tag "RequestHeader:m:HTTP Request Headers" -tag "ResponseHeader:m:HTTP ResponseHeader" -tag returnWrapped:m:Output</additionalparam>
+                                    <tags>
+                                        <tag>
+                                            <name>HTTP</name>
+                                            <placement>m</placement>
+                                            <head>HTTP Return Codes</head>
+                                        </tag>
+                                        <tag>
+                                            <name>RequestHeader</name>
+                                            <placement>m</placement>
+                                            <head>HTTP Request Headers</head>
+                                        </tag>
+                                        <tag>
+                                            <name>ResponseHeader</name>
+                                            <placement>m</placement>
+                                            <head>HTTP Response Headers</head>
+                                        </tag>
+                                        <tag>
+                                            <name>returnWrapped</name>
+                                            <placement>m</placement>
+                                            <head>Output</head>
+                                        </tag>
+                                    </tags>
                                     <show>private</show>
                                     <quiet>true</quiet>
                                     <javaApiLinks>

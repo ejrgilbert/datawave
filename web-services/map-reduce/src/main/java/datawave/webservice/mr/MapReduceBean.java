@@ -51,8 +51,8 @@ import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.system.ServerPrincipal;
 import datawave.security.util.AuthorizationsUtil;
 import datawave.webservice.common.audit.AuditBean;
-import datawave.webservice.common.audit.AuditParameters;
 import datawave.webservice.common.audit.Auditor;
+import datawave.webservice.common.audit.PrivateAuditConstants;
 import datawave.webservice.common.connection.AccumuloConnectionFactory;
 import datawave.webservice.common.connection.config.ConnectionPoolsConfiguration;
 import datawave.webservice.common.exception.BadRequestException;
@@ -150,9 +150,6 @@ public class MapReduceBean {
     
     @Inject
     private SecurityMarking marking;
-    
-    @Inject
-    private AuditParameters auditParameters;
     
     @Inject
     private AuditBean auditor;
@@ -280,17 +277,15 @@ public class MapReduceBean {
             if (!auditType.equals(Auditor.AuditType.NONE)) {
                 try {
                     marking.validate(queryParameters);
-                    MultivaluedMap<String,String> auditQueryParameters = job.getAuditParameters(queryParameters, oozieConf,
-                                    auditParameters.getRequiredAuditParameters());
-                    auditQueryParameters.add(AuditParameters.USER_DN, userDn);
-                    auditQueryParameters.add(AuditParameters.QUERY_SECURITY_MARKING_COLVIZ, marking.toColumnVisibilityString());
-                    auditQueryParameters.add(AuditParameters.QUERY_AUDIT_TYPE, auditType.name());
-                    
-                    auditParameters.clear();
-                    auditParameters.validate(auditQueryParameters);
-                    auditParameters.setSelectors(job.getSelectors(queryParameters, oozieConf));
-                    log.debug("sending audit message: " + auditParameters);
-                    auditor.audit(auditParameters);
+                    PrivateAuditConstants.stripPrivateParameters(queryParameters);
+                    queryParameters.putSingle(PrivateAuditConstants.USER_DN, userDn);
+                    queryParameters.putSingle(PrivateAuditConstants.COLUMN_VISIBILITY, marking.toColumnVisibilityString());
+                    queryParameters.putSingle(PrivateAuditConstants.AUDIT_TYPE, auditType.name());
+                    List<String> selectors = job.getSelectors(queryParameters, oozieConf);
+                    if (selectors != null && !selectors.isEmpty()) {
+                        queryParameters.put(PrivateAuditConstants.SELECTORS, selectors);
+                    }
+                    auditor.audit(queryParameters);
                 } catch (IllegalArgumentException e) {
                     log.error("Error validating audit parameters", e);
                     BadRequestQueryException qe = new BadRequestQueryException(DatawaveErrorCode.MISSING_REQUIRED_PARAMETER, e);
@@ -867,61 +862,58 @@ public class MapReduceBean {
         
         // Make final references for use in anonymous class
         final List<FileStatus> paths = resultFiles;
-        return new StreamingOutput() {
-            @Override
-            public void write(OutputStream output) throws IOException, WebApplicationException {
-                TarArchiveOutputStream tos = new TarArchiveOutputStream(output);
-                tos.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
-                try {
-                    for (FileStatus fileStatus : paths) {
-                        if (fileStatus.isDirectory())
-                            continue;
-                        // The archive entry will be started when the first (and possibly only) chunk is
-                        // written out. It is done this way because we need to know the size of the file
-                        // for the archive entry, and don't want to scan twice to get that info (once
-                        // here and again in streamFile).
-                        String fileName = fileStatus.getPath().toUri().getPath().substring(jobDirectoryPathLength + 1);
-                        TarArchiveEntry entry = new TarArchiveEntry(jobId + "/" + fileName, false);
-                        entry.setSize(fileStatus.getLen());
-                        tos.putArchiveEntry(entry);
-                        FSDataInputStream fis = fs.open(fileStatus.getPath());
-                        byte[] buf = new byte[BUFFER_SIZE];
-                        int read;
-                        try {
+        return output -> {
+            TarArchiveOutputStream tos = new TarArchiveOutputStream(output);
+            tos.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
+            try {
+                for (FileStatus fileStatus : paths) {
+                    if (fileStatus.isDirectory())
+                        continue;
+                    // The archive entry will be started when the first (and possibly only) chunk is
+                    // written out. It is done this way because we need to know the size of the file
+                    // for the archive entry, and don't want to scan twice to get that info (once
+                    // here and again in streamFile).
+                    String fileName = fileStatus.getPath().toUri().getPath().substring(jobDirectoryPathLength + 1);
+                    TarArchiveEntry entry = new TarArchiveEntry(jobId + "/" + fileName, false);
+                    entry.setSize(fileStatus.getLen());
+                    tos.putArchiveEntry(entry);
+                    FSDataInputStream fis = fs.open(fileStatus.getPath());
+                    byte[] buf = new byte[BUFFER_SIZE];
+                    int read;
+                    try {
+                        read = fis.read(buf);
+                        while (read != -1) {
+                            tos.write(buf, 0, read);
                             read = fis.read(buf);
-                            while (read != -1) {
-                                tos.write(buf, 0, read);
-                                read = fis.read(buf);
-                            }
-                        } catch (Exception e) {
-                            log.error("Error writing result file to output", e);
-                            throw new WebApplicationException(e);
-                        } finally {
-                            try {
-                                if (null != fis)
-                                    fis.close();
-                            } catch (IOException e) {
-                                log.error("Error closing FSDataInputStream for file: " + fileStatus.getPath().getName(), e);
-                            }
                         }
-                        tos.closeArchiveEntry();
+                    } catch (Exception e) {
+                        log.error("Error writing result file to output", e);
+                        throw new WebApplicationException(e);
+                    } finally {
+                        try {
+                            if (null != fis)
+                                fis.close();
+                        } catch (IOException e) {
+                            log.error("Error closing FSDataInputStream for file: " + fileStatus.getPath().getName(), e);
+                        }
                     }
-                    tos.finish();
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
-                } finally {
-                    try {
-                        if (null != tos)
-                            tos.close();
-                    } catch (IOException ioe) {
-                        log.error("Error closing TarArchiveOutputStream", ioe);
-                    }
-                    try {
-                        if (null != fs)
-                            fs.close();
-                    } catch (IOException ioe) {
-                        log.error("Error closing HDFS client", ioe);
-                    }
+                    tos.closeArchiveEntry();
+                }
+                tos.finish();
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            } finally {
+                try {
+                    if (null != tos)
+                        tos.close();
+                } catch (IOException ioe) {
+                    log.error("Error closing TarArchiveOutputStream", ioe);
+                }
+                try {
+                    if (null != fs)
+                        fs.close();
+                } catch (IOException ioe) {
+                    log.error("Error closing HDFS client", ioe);
                 }
             }
         };

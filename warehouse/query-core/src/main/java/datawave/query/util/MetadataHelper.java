@@ -321,7 +321,6 @@ public class MetadataHelper implements ApplicationContextAware {
         }
         Map<Set<String>,TypeMetadata> map = Maps.newHashMap();
         
-        Collection<Authorizations> auths = Sets.newHashSet();
         for (Set<String> a : powerset) {
             if (log.isTraceEnabled()) {
                 log.trace("get TypeMetadata with auths:" + a);
@@ -1335,13 +1334,7 @@ public class MetadataHelper implements ApplicationContextAware {
         
         try {
             Map<String,Long> countsByType = getCountsByFieldInDayWithTypes(Maps.immutableEntry(fieldName, date));
-            Iterable<Entry<String,Long>> filteredByType = Iterables.filter(countsByType.entrySet(), new Predicate<Entry<String,Long>>() {
-                @Override
-                public boolean apply(Entry<String,Long> input) {
-                    return datatypes.contains(input.getKey());
-                }
-                
-            });
+            Iterable<Entry<String,Long>> filteredByType = Iterables.filter(countsByType.entrySet(), input -> datatypes.contains(input.getKey()));
             
             long sum = 0;
             for (Entry<String,Long> entry : filteredByType) {

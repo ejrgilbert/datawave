@@ -21,7 +21,7 @@ import datawave.query.util.MetadataHelper;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
-import org.apache.commons.collections.keyvalue.DefaultMapEntry;
+import org.apache.commons.collections4.keyvalue.DefaultMapEntry;
 import org.apache.commons.jexl2.parser.ASTAndNode;
 import org.apache.commons.jexl2.parser.ASTCompositePredicate;
 import org.apache.commons.jexl2.parser.ASTDelayedPredicate;
@@ -430,7 +430,7 @@ public class ExpandCompositeTerms extends RebuildingVisitor {
                 JexlNode finalNode = JexlNodeFactory.createUnwrappedAndNode(finalNodes);
                 if (comp.jexlNodeList.size() > 1) {
                     JexlNode delayedNode = ASTDelayedPredicate.create(ASTCompositePredicate.create(JexlNodeFactory.createUnwrappedAndNode(comp.jexlNodeList
-                                    .stream().map(node -> JexlNodeFactory.wrap(node)).collect(Collectors.toList()))));
+                                    .stream().map(JexlNodeFactory::wrap).collect(Collectors.toList()))));
                     finalNode = JexlNodeFactory.createUnwrappedAndNode(Arrays.asList(JexlNodeFactory.wrap(finalNode), delayedNode));
                 }
                 nodeList.add(finalNode);
@@ -438,7 +438,7 @@ public class ExpandCompositeTerms extends RebuildingVisitor {
                 JexlNode finalNode = finalNodes.get(0);
                 if (comp.jexlNodeList.size() > 1 && !(finalNode instanceof ASTEQNode)) {
                     JexlNode delayedNode = ASTDelayedPredicate.create(ASTCompositePredicate.create(JexlNodeFactory.createUnwrappedAndNode(comp.jexlNodeList
-                                    .stream().map(node -> JexlNodeFactory.wrap(node)).collect(Collectors.toList()))));
+                                    .stream().map(JexlNodeFactory::wrap).collect(Collectors.toList()))));
                     finalNode = JexlNodeFactory.createUnwrappedAndNode(Arrays.asList(finalNode, delayedNode));
                 }
                 nodeList.add(finalNode);
@@ -821,6 +821,7 @@ public class ExpandCompositeTerms extends RebuildingVisitor {
                     Composite newComp;
                     comp.clone();
                     
+                    // at this point, if this is an and node, it is a bounded range
                     if (node instanceof ASTAndNode) {
                         newComp = CompositeRange.clone(comp);
                     } else {
@@ -1091,12 +1092,7 @@ public class ExpandCompositeTerms extends RebuildingVisitor {
      */
     private <K,V> LinkedHashMultimap<K,V> orderByCollectionSize(Multimap<K,V> mm) {
         List<Entry<K,Collection<V>>> orderedCompositeToFieldMap = new ArrayList<>(mm.asMap().entrySet());
-        Collections.sort(orderedCompositeToFieldMap, new Comparator<Entry<K,Collection<V>>>() {
-            @Override
-            public int compare(Entry<K,Collection<V>> o1, Entry<K,Collection<V>> o2) {
-                return Integer.compare(o2.getValue().size(), o1.getValue().size());
-            }
-        });
+        Collections.sort(orderedCompositeToFieldMap, (o1, o2) -> Integer.compare(o2.getValue().size(), o1.getValue().size()));
         
         LinkedHashMultimap<K,V> orderedMm = LinkedHashMultimap.create();
         for (Map.Entry<K,Collection<V>> foundEntry : orderedCompositeToFieldMap) {

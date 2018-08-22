@@ -2,13 +2,19 @@ package datawave.query.jexl.visitors;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
-import datawave.query.attributes.AttributeFactory;
+import com.google.common.collect.Multimap;
 import datawave.data.type.Type;
 import datawave.query.data.parsers.DatawaveKey;
 import datawave.query.attributes.*;
 import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.LiteralRange;
+import datawave.query.jexl.functions.EvaluationPhaseFilterFunctions;
+import datawave.query.jexl.functions.EvaluationPhaseFilterFunctionsDescriptor;
+import datawave.query.jexl.functions.JexlFunctionArgumentDescriptorFactory;
+import datawave.query.jexl.functions.arguments.JexlArgumentDescriptor;
+import datawave.query.postprocessing.tf.Function;
 import datawave.query.predicate.Filter;
+import datawave.query.util.MetadataHelper;
 import org.apache.accumulo.core.data.Key;
 import org.apache.commons.jexl2.parser.*;
 import org.apache.log4j.Logger;
@@ -38,7 +44,7 @@ public class EventDataQueryExpressionVisitor extends BaseVisitor {
      * The null value flag is a bit of an unusual case and is generated in cases where a null (or non-null) comparison is performed for a field. It indicates
      * that at least one key for a field must be kept regardless of value. As such, this flag is set to false once its predicate has be satisfied.
      */
-    public static class ExpressionFilter implements Predicate<Key> {
+    public static class ExpressionFilter implements Predicate<Key>, Cloneable {
         final AttributeFactory attributeFactory;
         
         /** The field this filter apples to */
@@ -46,22 +52,47 @@ public class EventDataQueryExpressionVisitor extends BaseVisitor {
         /** fieldValues contains a set of literal values for which we need to keep data in order to satisfy the query */
         final Set<String> fieldValues;
         /** fieldPatterns contains a set of patterns for which we need to keep data in order to satisfy the query */
-        final Set<Matcher> fieldPatterns;
+        final Map<Pattern,Matcher> fieldPatterns;
         /** fieldRanges contains a set of ranges for which we need to keep data in order to satisfy the query */
         final Set<LiteralRange<?>> fieldRanges;
-        /**
-         * nullValueFlag indicates that we need to capture at least one instance of the field in order to satisfy a null value check in the query. It reset to
-         * false once a single instance of the field is collected.
-         */
-        final AtomicBoolean nullValueFlag;
+        /** nullValueFlag indicates that we need to capture at least one instance of the field in order to satisfy a null value check in the query */
+        boolean nullValueFlag;
+        /** nonNullValueSeen indicates that we have seen a nonNullValue. This is used with the nullValueFlag. */
+        boolean nonNullValueSeen;
+        /** acceptAll indicates that all values should be returned */
+        boolean acceptAll;
         
         public ExpressionFilter(AttributeFactory attributeFactory, String fieldName) {
             this.attributeFactory = attributeFactory;
             this.fieldName = fieldName;
             this.fieldValues = new HashSet<>();
-            this.fieldPatterns = new HashSet<>();
+            this.fieldPatterns = new HashMap<>();
             this.fieldRanges = new HashSet<>();
-            this.nullValueFlag = new AtomicBoolean(false);
+            this.nullValueFlag = false;
+            this.nonNullValueSeen = false;
+            this.acceptAll = false;
+        }
+        
+        public ExpressionFilter(ExpressionFilter other) {
+            this(other.attributeFactory, other.fieldName);
+            this.fieldValues.addAll(other.fieldValues);
+            // making new Matcher objects as they are not thread safe.
+            for (Map.Entry<Pattern,Matcher> entry : other.fieldPatterns.entrySet()) {
+                this.fieldPatterns.put(entry.getKey(), entry.getKey().matcher(""));
+            }
+            this.fieldRanges.addAll(other.fieldRanges);
+            this.nullValueFlag = other.nullValueFlag;
+            this.nonNullValueSeen = other.nonNullValueSeen;
+            this.acceptAll = other.acceptAll;
+        }
+        
+        @Override
+        public ExpressionFilter clone() {
+            return new ExpressionFilter(this);
+        }
+        
+        public void reset() {
+            nonNullValueSeen = false;
         }
         
         public String getFieldName() {
@@ -77,17 +108,21 @@ public class EventDataQueryExpressionVisitor extends BaseVisitor {
         }
         
         public void setNullValueFlag() {
-            nullValueFlag.set(true);
+            nullValueFlag = true;
         }
         
         public void addFieldPattern(String pattern) {
             Pattern p = Pattern.compile(pattern);
             Matcher m = p.matcher("");
-            fieldPatterns.add(m);
+            fieldPatterns.put(p, m);
         }
         
         public void addFieldRange(LiteralRange range) {
             fieldRanges.add(range);
+        }
+        
+        public void acceptAllValues() {
+            acceptAll = true;
         }
         
         /**
@@ -101,6 +136,9 @@ public class EventDataQueryExpressionVisitor extends BaseVisitor {
             final String keyFieldName = JexlASTHelper.deconstructIdentifier(datawaveKey.getFieldName(), false);
             
             if (fieldName.equals(keyFieldName)) {
+                if (acceptAll) {
+                    return true;
+                }
                 
                 final String keyFieldValue = datawaveKey.getFieldValue();
                 final Set<String> normalizedFieldValues = EventDataQueryExpressionVisitor.extractNormalizedAttributes(attributeFactory, keyFieldName,
@@ -109,15 +147,15 @@ public class EventDataQueryExpressionVisitor extends BaseVisitor {
                 for (String normalizedFieldValue : normalizedFieldValues) {
                     if (fieldValues.contains(normalizedFieldValue)) {
                         // field name matches and field value matches, keep.
-                        nullValueFlag.set(false);
+                        nonNullValueSeen = true;
                         return true;
                     }
                     
-                    for (Matcher m : fieldPatterns) {
+                    for (Matcher m : fieldPatterns.values()) {
                         m.reset(normalizedFieldValue);
                         if (m.matches()) {
                             // field name matches and field pattern matches, keep.
-                            nullValueFlag.set(false);
+                            nonNullValueSeen = true;
                             return true;
                         }
                     }
@@ -125,15 +163,16 @@ public class EventDataQueryExpressionVisitor extends BaseVisitor {
                     for (LiteralRange r : fieldRanges) {
                         if (r.contains(normalizedFieldValue)) {
                             // field name patches and value is within range, keep.
-                            nullValueFlag.set(false);
+                            nonNullValueSeen = true;
                             return true;
                         }
                     }
                     
-                    if (nullValueFlag.compareAndSet(true, false)) {
+                    if (nullValueFlag && !nonNullValueSeen) {
                         // field name has a nullValueFlag, keep one and only one instance
                         // of this field. (The fact of its presence will be sufficient
                         // to satisfy the null check condition assuming all other conditions are met
+                        nonNullValueSeen = true;
                         return true;
                     }
                 }
@@ -141,6 +180,37 @@ public class EventDataQueryExpressionVisitor extends BaseVisitor {
             
             // field name does not match any of the rules above, reject this key.
             return false;
+        }
+        
+        /**
+         * A helper method to clone a set of filters
+         * 
+         * @param filters
+         * @return a cloned set of filters
+         */
+        public static Map<String,? extends Predicate<Key>> clone(Map<String,? extends Predicate<Key>> filters) {
+            Map<String,Predicate<Key>> cloned = new HashMap<>();
+            for (Map.Entry<String,? extends Predicate<Key>> entry : filters.entrySet()) {
+                if (entry.getValue() instanceof ExpressionFilter) {
+                    cloned.put(entry.getKey(), ((ExpressionFilter) entry.getValue()).clone());
+                } else {
+                    cloned.put(entry.getKey(), entry.getValue());
+                }
+            }
+            return cloned;
+        }
+        
+        /**
+         * A helper method to reset a set of filters
+         *
+         * @param filters
+         */
+        public static void reset(Map<String,? extends Predicate<Key>> filters) {
+            for (Map.Entry<String,? extends Predicate<Key>> entry : filters.entrySet()) {
+                if (entry.getValue() instanceof ExpressionFilter) {
+                    ((ExpressionFilter) entry.getValue()).reset();
+                }
+            }
         }
     }
     
@@ -206,6 +276,15 @@ public class EventDataQueryExpressionVisitor extends BaseVisitor {
         } else {
             super.visit(node, data);
         }
+        
+        return null;
+    }
+    
+    @Override
+    public Object visit(ASTFunctionNode node, Object data) {
+        
+        JexlArgumentDescriptor desc = JexlFunctionArgumentDescriptorFactory.F.getArgumentDescriptor(node);
+        desc.addFilters(attributeFactory, filterMap);
         
         return null;
     }

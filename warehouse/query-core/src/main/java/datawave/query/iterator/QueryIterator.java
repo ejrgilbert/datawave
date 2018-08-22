@@ -61,6 +61,7 @@ import datawave.query.predicate.EmptyDocumentFilter;
 import datawave.query.statsd.QueryStatsDClient;
 import datawave.query.util.EmptyContext;
 import datawave.query.util.EntryToTuple;
+import datawave.query.transformer.UniqueTransform;
 import datawave.query.util.TraceIterators;
 import datawave.query.util.Tuple2;
 import datawave.query.util.Tuple3;
@@ -76,6 +77,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.trace.instrument.Span;
 import org.apache.accumulo.trace.instrument.Trace;
+import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.apache.commons.jexl2.JexlArithmetic;
 import org.apache.commons.jexl2.parser.ASTJexlScript;
 import org.apache.commons.lang.builder.CompareToBuilder;
@@ -162,6 +164,8 @@ public class QueryIterator extends QueryOptions implements SortedKeyValueIterato
     protected QuerySpan trackingSpan = null;
     
     protected QuerySpanCollector querySpanCollector = new QuerySpanCollector();
+    
+    protected UniqueTransform uniqueTransform = null;
     
     protected boolean groupingContextAddedByMe = false;
     
@@ -346,7 +350,6 @@ public class QueryIterator extends QueryOptions implements SortedKeyValueIterato
                     this.seekKeySource = new DocumentSpecificNestedIterator(documentKey);
                 }
             } else {
-                
                 this.seekKeySource = buildDocumentIterator(documentRange, range, columnFamilies, inclusive);
             }
             
@@ -405,17 +408,52 @@ public class QueryIterator extends QueryOptions implements SortedKeyValueIterato
      * 
      * @param e
      */
-    private void handleException(Exception e) {
-        // if this is an IterationInterruptedException, then we can ignore and return silently
+    private void handleException(Exception e) throws IOException {
         Throwable reason = e;
+        
+        // We need to pass IOException, IteratorInterruptedException, and TabletClosedExceptions up to the Tablet as they are
+        // handled specially to ensure that the client will retry the scan elsewhere
+        IOException ioe = null;
+        IterationInterruptedException iie = null;
+        TabletClosedException tce = null;
+        if (reason instanceof IOException)
+            ioe = (IOException) reason;
+        if (reason instanceof IterationInterruptedException)
+            iie = (IterationInterruptedException) reason;
+        if (reason instanceof TabletClosedException)
+            tce = (TabletClosedException) reason;
+        
         int depth = 1;
-        while (reason.getCause() != null && reason.getCause() != reason && depth < 100) {
+        while (tce == null && iie == null && ioe == null && reason.getCause() != null && reason.getCause() != reason && depth < 100) {
             reason = reason.getCause();
+            if (reason instanceof IOException)
+                ioe = (IOException) reason;
+            if (reason instanceof IterationInterruptedException)
+                iie = (IterationInterruptedException) reason;
+            if (reason instanceof TabletClosedException)
+                tce = (TabletClosedException) reason;
             depth++;
         }
-        if (!(reason instanceof IterationInterruptedException)) {
-            log.error("Failure for query " + queryId + " : " + reason.getMessage());
-            throw new RuntimeException("Failure for query " + queryId + " " + query, e);
+        
+        // NOTE: Only logging debug here because the Tablet/LookupTask will log the exception as a WARN if we actually have an problem here
+        if (iie != null) {
+            // exit gracefully if we are yielding as an iie is expected in this case
+            if ((this.yield != null) && this.yield.hasYielded()) {
+                log.debug("Query yielded " + queryId);
+                return;
+            } else {
+                log.debug("Query interrupted " + queryId, e);
+                throw iie;
+            }
+        } else if (tce != null) {
+            log.debug("Query tablet closed " + queryId, e);
+            throw tce;
+        } else if (ioe != null) {
+            log.debug("Query io exception " + queryId, e);
+            throw ioe;
+        } else {
+            log.error("Failure for query " + queryId, e);
+            throw new RuntimeException("Failure for query " + queryId, e);
         }
     }
     
@@ -567,7 +605,7 @@ public class QueryIterator extends QueryOptions implements SortedKeyValueIterato
     
     /**
      * Returns the elements of {@code unfiltered} that satisfy a predicate. This is used instead of the google commons Iterators.filter to create a
-     * non-stateless filtering iterator.
+     * non-statefull filtering iterator.
      */
     public static <T> UnmodifiableIterator<T> statelessFilter(final Iterator<T> unfiltered, final Predicate<? super T> predicate) {
         checkNotNull(unfiltered);
@@ -646,14 +684,9 @@ public class QueryIterator extends QueryOptions implements SortedKeyValueIterato
                             this.includeHierarchyFields, this.includeHierarchyFields);
         }
         
-        Iterator<Entry<DocumentData,Document>> sourceIterator = Iterators.transform(documentSpecificSource, new Function<Key,Entry<DocumentData,Document>>() {
-            
-            @Override
-            public Entry<DocumentData,Document> apply(Key from) {
-                Entry<Key,Document> entry = Maps.immutableEntry(from, documentSpecificSource.document());
-                return docMapper.apply(entry);
-            }
-            
+        Iterator<Entry<DocumentData,Document>> sourceIterator = Iterators.transform(documentSpecificSource, from -> {
+            Entry<Key,Document> entry = Maps.immutableEntry(from, documentSpecificSource.document());
+            return docMapper.apply(entry);
         });
         
         // Take the document Keys and transform it into Entry<Key,Document>,
@@ -734,7 +767,14 @@ public class QueryIterator extends QueryOptions implements SortedKeyValueIterato
             }
         }
         
+        // remove the composite entries
         documents = Iterators.transform(documents, this.getCompositeProjection());
+        
+        // now apply the unique transform if requested
+        UniqueTransform uniquify = getUniqueTransform();
+        if (uniquify != null) {
+            documents = Iterators.filter(documents, uniquify.getUniquePredicate());
+        }
         
         // Filter out any Documents which are empty (e.g. due to attribute
         // projection or visibility filtering)
@@ -1287,6 +1327,17 @@ public class QueryIterator extends QueryOptions implements SortedKeyValueIterato
     @Override
     public Comparator<Object> getValueComparator(Tuple3<Key,Document,Map<String,Object>> from) {
         return new ValueComparator(from.second().getMetadata());
+    }
+    
+    protected UniqueTransform getUniqueTransform() {
+        if (uniqueTransform == null && getUniqueFields() != null & !getUniqueFields().isEmpty()) {
+            synchronized (getUniqueFields()) {
+                if (uniqueTransform == null) {
+                    uniqueTransform = new UniqueTransform(getUniqueFields());
+                }
+            }
+        }
+        return uniqueTransform;
     }
     
 }

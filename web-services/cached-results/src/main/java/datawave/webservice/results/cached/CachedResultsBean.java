@@ -79,8 +79,8 @@ import datawave.marking.SecurityMarking;
 import datawave.resteasy.interceptor.CreateQuerySessionIDFilter;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.webservice.common.audit.AuditBean;
-import datawave.webservice.common.audit.AuditParameters;
 import datawave.webservice.common.audit.Auditor.AuditType;
+import datawave.webservice.common.audit.PrivateAuditConstants;
 import datawave.webservice.common.connection.AccumuloConnectionFactory;
 import datawave.webservice.common.exception.DatawaveWebApplicationException;
 import datawave.webservice.common.exception.NoResultsException;
@@ -129,7 +129,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.commons.collections.Transformer;
+import org.apache.commons.collections4.Transformer;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.jexl2.parser.TokenMgrError;
 import org.apache.commons.lang.StringUtils;
@@ -219,9 +219,6 @@ public class CachedResultsBean {
     
     @Inject
     private CachedResultsQueryCache cachedRunningQueryCache;
-    
-    @Inject
-    private AuditParameters auditParameters;
     
     @Inject
     private SecurityMarking marking;
@@ -458,18 +455,19 @@ public class CachedResultsBean {
                 try {
                     MultivaluedMap<String,String> queryMap = q.toMap();
                     marking.validate(queryMap);
-                    queryMap.putSingle(AuditParameters.QUERY_SECURITY_MARKING_COLVIZ, marking.toColumnVisibilityString());
-                    queryMap.putSingle(AuditParameters.QUERY_AUDIT_TYPE, auditType.toString());
-                    queryMap.putSingle(AuditParameters.USER_DN, q.getUserDN());
-                    queryMap.putSingle("logicClass", logic.getLogicName());
-                    auditParameters.clear();
-                    auditParameters.validate(queryMap);
+                    queryMap.putSingle(PrivateAuditConstants.COLUMN_VISIBILITY, marking.toColumnVisibilityString());
+                    queryMap.putSingle(PrivateAuditConstants.AUDIT_TYPE, auditType.name());
+                    queryMap.putSingle(PrivateAuditConstants.USER_DN, q.getUserDN());
+                    queryMap.putSingle(PrivateAuditConstants.LOGIC_CLASS, logic.getLogicName());
                     try {
-                        auditParameters.setSelectors(logic.getSelectors(q));
+                        List<String> selectors = logic.getSelectors(q);
+                        if (selectors != null && !selectors.isEmpty()) {
+                            queryMap.put(PrivateAuditConstants.SELECTORS, selectors);
+                        }
                     } catch (Exception e) {
                         log.error(e.getMessage());
                     }
-                    auditor.audit(auditParameters);
+                    auditor.audit(queryMap);
                 } catch (Exception e) {
                     QueryException qe = new QueryException(DatawaveErrorCode.QUERY_AUDITING_ERROR, e);
                     log.error(qe);
@@ -1038,6 +1036,8 @@ public class CachedResultsBean {
         return response;
     }
     
+    // Do not use the @Asynchronous annotation here. This method runs (calling the other version), setting
+    // status and then executes loadAndCreate asynchronously. It does not itself get run asynchronously.
     @Interceptors({RequiredInterceptor.class, ResponseInterceptor.class})
     public Future<CachedResultsResponse> loadAndCreateAsync(@Required("newQueryId") String newQueryId, String alias, @Required("queryId") String queryId,
                     @Required("fields") String fields, String conditions, String grouping, String order, @Required("columnVisibility") String columnVisibility,
@@ -1058,7 +1058,8 @@ public class CachedResultsBean {
         return loadAndCreateAsync(queryParameters);
     }
     
-    @Asynchronous
+    // Do not use the @Asynchronous annotation here. This method runs, setting status and
+    // then executes loadAndCreate asynchronously. It does not itself get run asynchronously.
     @Interceptors({RequiredInterceptor.class, ResponseInterceptor.class})
     public Future<CachedResultsResponse> loadAndCreateAsync(MultivaluedMap<String,String> queryParameters) {
         
@@ -1307,16 +1308,15 @@ public class CachedResultsBean {
                 auditMessage.append(", secondary query: ").append(sqlQuery);
                 MultivaluedMap<String,String> params = query.toMap();
                 marking.validate(params);
-                params.putSingle(AuditParameters.QUERY_SECURITY_MARKING_COLVIZ, marking.toColumnVisibilityString());
-                params.putSingle(AuditParameters.QUERY_AUDIT_TYPE, auditType.toString());
-                params.putSingle(AuditParameters.USER_DN, query.getUserDN());
-                params.putSingle("logicClass", crq.getQueryLogic().getLogicName());
+                PrivateAuditConstants.stripPrivateParameters(queryParameters);
+                params.putSingle(PrivateAuditConstants.COLUMN_VISIBILITY, marking.toColumnVisibilityString());
+                params.putSingle(PrivateAuditConstants.AUDIT_TYPE, auditType.name());
+                params.putSingle(PrivateAuditConstants.USER_DN, query.getUserDN());
+                params.putSingle(PrivateAuditConstants.LOGIC_CLASS, crq.getQueryLogic().getLogicName());
                 params.remove(QueryParameters.QUERY_STRING);
                 params.putSingle(QueryParameters.QUERY_STRING, auditMessage.toString());
                 params.putAll(queryParameters);
-                auditParameters.clear();
-                auditParameters.validate(params);
-                auditor.audit(auditParameters);
+                auditor.audit(params);
             }
             
             response.setOriginalQueryId(originalQueryId);
@@ -2360,34 +2360,28 @@ public class CachedResultsBean {
                                 InputStream stderr = process.getErrorStream();
                                 final BufferedReader errReader = new BufferedReader(new InputStreamReader(stderr));
                                 try {
-                                    Thread outReadThread = new Thread() {
-                                        @Override
-                                        public void run() {
-                                            try {
-                                                String line = outReader.readLine();
-                                                while (line != null) {
-                                                    log.info(line);
-                                                    line = outReader.readLine();
-                                                }
-                                            } catch (IOException e) {
-                                                log.error("Error in readThread", e);
+                                    Thread outReadThread = new Thread(() -> {
+                                        try {
+                                            String line = outReader.readLine();
+                                            while (line != null) {
+                                                log.info(line);
+                                                line = outReader.readLine();
                                             }
+                                        } catch (IOException e) {
+                                            log.error("Error in readThread", e);
                                         }
-                                    };
-                                    Thread errReadThread = new Thread() {
-                                        @Override
-                                        public void run() {
-                                            try {
-                                                String line = errReader.readLine();
-                                                while (line != null) {
-                                                    log.error(line);
-                                                    line = errReader.readLine();
-                                                }
-                                            } catch (IOException e) {
-                                                log.error("Error in readThread", e);
+                                    });
+                                    Thread errReadThread = new Thread(() -> {
+                                        try {
+                                            String line = errReader.readLine();
+                                            while (line != null) {
+                                                log.error(line);
+                                                line = errReader.readLine();
                                             }
+                                        } catch (IOException e) {
+                                            log.error("Error in readThread", e);
                                         }
-                                    };
+                                    });
                                     outReadThread.setName(id + "-StdOutReadThread");
                                     outReadThread.start();
                                     errReadThread.setName(id + "-StdErrReadThread");
