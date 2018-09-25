@@ -27,7 +27,12 @@ else
   trap 'rm -f "$ingestHost"; exit $?' INT TERM EXIT
   echo $INGEST_HOST > $ingestHost
 
-  pdsh -f 25 -w ^${ingestHost} "$INGEST_BIN/ingest/stop-ingesters.sh $@" < /dev/null 2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/stderr) | dshbak -f -d /tmp/pdsh_log/${script_name}/stdout
+  localhost=$(hostname -s)
+  rm -rf /tmp/pdsh_log/${script_name}/$$
+  pdsh -f 25 -w ^${ingestHost} "$INGEST_BIN/ingest/stop-ingesters.sh $@" < /dev/null \
+    1> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/stdout) \
+    2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/stderr); \
+    cat /tmp/pdsh_log/${script_name}/$$/stderr/pdsh\@${localhost} 2> /dev/null
 
   rm $ingestHost
   trap - INT TERM EXIT

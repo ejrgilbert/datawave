@@ -34,9 +34,20 @@ else
   trap 'rm -f "$ingestHost"; exit $?' INT TERM EXIT
   echo $INGEST_HOST > $ingestHost
 
-  pdsh -f 25 -w ^${ingestHost} "$METRICS_BIN/metrics/startMetricsIngest.sh ingest $FORCE" < /dev/null 2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/stderr) | dshbak -f -d /tmp/pdsh_log/${script_name}/stdout
-  pdsh -f 25 -w ^${ingestHost} "$METRICS_BIN/metrics/startMetricsIngest.sh loader $FORCE" < /dev/null 2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/stderr) | dshbak -f -d /tmp/pdsh_log/${script_name}/stdout
-  pdsh -f 25 -w ^${ingestHost} "$METRICS_BIN/metrics/startMetricsIngest.sh flagmaker $FORCE" < /dev/null 2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/stderr) | dshbak -f -d /tmp/pdsh_log/${script_name}/stdout
+  localhost=$(hostname -s)
+  rm -rf /tmp/pdsh_log/${script_name}/$$
+  pdsh -f 25 -w ^${ingestHost} "$METRICS_BIN/metrics/startMetricsIngest.sh ingest $FORCE" < /dev/null \
+    1> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/ingest_cmd/stdout) \
+    2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/ingest_cmd/stderr); \
+    cat /tmp/pdsh_log/${script_name}/$$/ingest_cmd/stderr/pdsh\@${localhost} 2> /dev/null
+  pdsh -f 25 -w ^${ingestHost} "$METRICS_BIN/metrics/startMetricsIngest.sh loader $FORCE" < /dev/null \
+    1> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/loader_cmd/stdout) \
+    2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/loader_cmd/stderr); \
+    cat /tmp/pdsh_log/${script_name}/$$/loader_cmd/stderr/pdsh\@${localhost} 2> /dev/null
+  pdsh -f 25 -w ^${ingestHost} "$METRICS_BIN/metrics/startMetricsIngest.sh flagmaker $FORCE" < /dev/null \
+    1> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/flagmaker_cmd/stdout) \
+    2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/flagmaker_cmd/stderr); \
+    cat /tmp/pdsh_log/${script_name}/$$/flagmaker_cmd/stderr/pdsh\@${localhost} 2> /dev/null
 
   rm $ingestHost
   trap - INT TERM EXIT
