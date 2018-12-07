@@ -6,8 +6,10 @@ import datawave.webservice.common.audit.Auditor.AuditType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
+/**
+ * This is the base Audit Message Handler which is paired with the given Auditor to process audit messages. The common convention is for the auditor to override
+ * the onMessage method in it's associated configuration class in order to add the appropriate StreamListener annotation.
+ */
 public class AuditMessageHandler {
     
     private final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -21,10 +23,11 @@ public class AuditMessageHandler {
         this.auditor = auditor;
     }
     
-    public void onMessage(Map<String,String> msg) throws Exception {
+    public void onMessage(AuditMessage msg) throws Exception {
         try {
-            AuditParameters ap = msgHandlerAuditParams.fromMap(msg);
-            if (!ap.getAuditType().equals(AuditType.NONE)) {
+            AuditParameters ap = msgHandlerAuditParams.fromMap(msg.getAuditParameters());
+            // log the audit message if the type is anything except NONE (even null)
+            if (!(ap.getAuditType() != null && ap.getAuditType().equals(AuditType.NONE))) {
                 auditor.audit(ap);
             }
         } catch (Exception e) {

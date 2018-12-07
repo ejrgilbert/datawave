@@ -168,7 +168,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         Connector connector = null;
         
         try {
-            connector = connectionFactory.getConnection(Priority.ADMIN, new HashMap<String,String>());
+            connector = connectionFactory.getConnection(Priority.ADMIN, new HashMap<>());
             connectorAuthorizations = connector.securityOperations().getUserAuthorizations(connector.whoami()).toString();
             connectorAuthorizationCollection = Lists.newArrayList(StringUtils.split(connectorAuthorizations, ","));
             reload();
@@ -203,7 +203,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
         Connector connector = null;
         
         try {
-            connector = this.connectionFactory.getConnection(Priority.ADMIN, new HashMap<String,String>());
+            connector = this.connectionFactory.getConnection(Priority.ADMIN, new HashMap<>());
             AbstractColumnBasedHandler<Key> handler = new ContentQueryMetricsHandler<>();
             createAndConfigureTablesIfNecessary(handler.getTableNames(conf), connector.tableOperations(), conf);
         } catch (Exception e) {
@@ -420,7 +420,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
                 queryMetrics = Collections.singletonList(cachedQueryMetric);
             }
             
-            if (queryMetrics.size() > 0) {
+            if (!queryMetrics.isEmpty()) {
                 writeMetrics(updatedQueryMetric, queryMetrics, lastUpdated, true);
             }
             
@@ -467,7 +467,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             while (!done) {
                 ResultsPage resultsPage = runningQuery.next();
                 
-                if (resultsPage.getResults().size() > 0) {
+                if (!resultsPage.getResults().isEmpty()) {
                     objectList.addAll(resultsPage.getResults());
                 } else {
                     done = true;
@@ -477,7 +477,7 @@ public class ShardTableQueryMetricHandler extends BaseQueryMetricHandler<QueryMe
             BaseQueryResponse queryResponse = queryLogic.getTransformer(query).createResponse(new ResultsPage(objectList));
             List<QueryExceptionType> exceptions = queryResponse.getExceptions();
             
-            if (queryResponse.getExceptions() != null && queryResponse.getExceptions().size() > 0) {
+            if (queryResponse.getExceptions() != null && !queryResponse.getExceptions().isEmpty()) {
                 if (response != null) {
                     response.setExceptions(new LinkedList<>(exceptions));
                     response.setHasResults(false);

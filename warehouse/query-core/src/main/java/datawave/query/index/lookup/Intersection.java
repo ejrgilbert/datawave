@@ -48,7 +48,7 @@ public class Intersection implements IndexStream {
     private TreeMultimap<String,IndexStream> children;
     private final StreamContext context;
     private final String contextDebug;
-    private final List<String> childrenContextDebug = new ArrayList<String>();
+    private final List<String> childrenContextDebug = new ArrayList<>();
     Multimap<String,JexlNode> nodesMap = ArrayListMultimap.create();
     private Tuple2<String,IndexInfo> next;
     private JexlNode currNode;
@@ -63,6 +63,8 @@ public class Intersection implements IndexStream {
         this.uidIntersector = uidIntersector;
         delayedNodes = Lists.newArrayList();
         Iterator<? extends IndexStream> childrenItr = children.iterator();
+        
+        boolean allExceededValueThreshold = true;
         
         if (log.isTraceEnabled()) {
             log.trace("Constructor -- has children? " + childrenItr.hasNext());
@@ -80,6 +82,8 @@ public class Intersection implements IndexStream {
                 if (StreamContext.NO_OP == stream.context())
                     continue;
                 
+                boolean exceededValueThreshold = false;
+                
                 if (stream.hasNext()) {
                     if (log.isTraceEnabled()) {
                         log.trace("Stream has next, so adding it to children " + stream.peek().second().getNode() + " " + key(stream));
@@ -94,6 +98,9 @@ public class Intersection implements IndexStream {
                         this.children.put(key(stream), stream);
                     } else {
                         
+                        if (StreamContext.EXCEEDED_VALUE_THRESHOLD == stream.context())
+                            exceededValueThreshold = true;
+                        
                         nodesMap.put(JexlStringBuildingVisitor.buildQueryWithoutParse(stream.currentNode()), stream.currentNode());
                         this.children.put(key(stream), stream);
                     }
@@ -101,6 +108,7 @@ public class Intersection implements IndexStream {
                     if (StreamContext.EXCEEDED_TERM_THRESHOLD == stream.context()) {
                         delayedNodes.add(stream.currentNode());
                     } else if (StreamContext.EXCEEDED_VALUE_THRESHOLD == stream.context()) {
+                        exceededValueThreshold = true;
                         absent = true;
                     } else if (StreamContext.ABSENT == stream.context()) {
                         absent = true;
@@ -115,6 +123,9 @@ public class Intersection implements IndexStream {
                         throw new DatawaveFatalQueryException(qe);
                     }
                 }
+                
+                if (!exceededValueThreshold)
+                    allExceededValueThreshold = false;
             }
             if (log.isTraceEnabled())
                 log.trace("size is " + this.children.size());
@@ -129,9 +140,13 @@ public class Intersection implements IndexStream {
             } else if (allChildrenAreUnindexed(this.children.values())) {
                 this.context = StreamContext.UNINDEXED;
                 this.contextDebug = "all children unindexed";
-            } else if (this.children.size() == 0 && delayedField) {
+            } else if (this.children.isEmpty() && delayedField) {
                 this.context = StreamContext.DELAYED_FIELD;
                 this.contextDebug = "delayed field";
+            } else if (allExceededValueThreshold) {
+                this.context = StreamContext.EXCEEDED_VALUE_THRESHOLD;
+                this.contextDebug = "all children exceeded value threshold";
+                next();
             } else {
                 this.context = StreamContext.PRESENT;
                 this.contextDebug = "children may intersect";
@@ -272,7 +287,7 @@ public class Intersection implements IndexStream {
         currNode = buildCurrentNode();
         
         if (!childrenAdded) {
-            if (delayedNodes.size() > 0)
+            if (!delayedNodes.isEmpty())
                 childrenAdded = merged.intersect(delayedNodes);
             
         }
@@ -370,7 +385,7 @@ public class Intersection implements IndexStream {
         
         protected UidIntersector uidIntersector = new IndexInfo();
         
-        protected IdentityHashMap<IndexStream,Object> children = new IdentityHashMap<IndexStream,Object>();
+        protected IdentityHashMap<IndexStream,Object> children = new IdentityHashMap<>();
         
         protected List<ConcurrentScannerInitializer> todo = Lists.newArrayList();
         
@@ -394,7 +409,7 @@ public class Intersection implements IndexStream {
         
         public Intersection build(ExecutorService service) {
             
-            if (todo.size() > 0) {
+            if (!todo.isEmpty()) {
                 if (log.isTraceEnabled())
                     log.trace("building " + todo.size() + " scanners concurrently");
                 Collection<IndexStream> streams = ConcurrentScannerInitializer.initializeScannerStreams(todo, service);

@@ -2,7 +2,6 @@ package datawave.query.planner;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.HashMultimap;
@@ -35,11 +34,13 @@ import datawave.query.iterator.logic.IndexIterator;
 import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.JexlNodeFactory;
 import datawave.query.jexl.functions.EvaluationPhaseFilterFunctions;
+import datawave.query.jexl.functions.QueryFunctions;
 import datawave.query.jexl.visitors.BoundedRangeDetectionVisitor;
 import datawave.query.jexl.visitors.CaseSensitivityVisitor;
 import datawave.query.jexl.visitors.DepthVisitor;
 import datawave.query.jexl.visitors.ExecutableDeterminationVisitor;
 import datawave.query.jexl.visitors.ExecutableDeterminationVisitor.STATE;
+import datawave.query.jexl.visitors.ExecutableExpansionVisitor;
 import datawave.query.jexl.visitors.ExpandCompositeTerms;
 import datawave.query.jexl.visitors.ExpandMultiNormalizedTerms;
 import datawave.query.jexl.visitors.FetchDataTypesVisitor;
@@ -125,7 +126,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -247,6 +247,11 @@ public class DefaultQueryPlanner extends QueryPlanner {
     protected long sourceLimit = -1;
     
     protected QueryModelProvider.Factory queryModelProviderFactory = new MetadataHelperQueryModelProvider.Factory();
+    
+    /**
+     * Should the ExecutableExpansionVisitor be run
+     */
+    protected boolean executableExpansion = true;
     
     public DefaultQueryPlanner() {
         this(Long.MAX_VALUE);
@@ -428,7 +433,7 @@ public class DefaultQueryPlanner extends QueryPlanner {
         // add the geo query comparator to sort by geo range granularity if this is a geo query
         List<Comparator<QueryPlan>> queryPlanComparators = null;
         if (config.isSortGeoWaveQueryRanges()) {
-            List<String> geoFields = new ArrayList<String>();
+            List<String> geoFields = new ArrayList<>();
             for (String fieldName : config.getIndexedFields()) {
                 for (Type type : config.getQueryFieldsDatatypes().get(fieldName)) {
                     if (type instanceof GeometryType) {
@@ -472,6 +477,7 @@ public class DefaultQueryPlanner extends QueryPlanner {
         
         addOption(cfg, QueryOptions.LIMIT_FIELDS, config.getLimitFieldsAsString(), true);
         addOption(cfg, QueryOptions.GROUP_FIELDS, config.getGroupFieldsAsString(), true);
+        addOption(cfg, QueryOptions.GROUP_FIELDS_BATCH_SIZE, config.getGroupFieldsBatchSizeAsString(), true);
         addOption(cfg, QueryOptions.UNIQUE_FIELDS, config.getUniqueFieldsAsString(), true);
         addOption(cfg, QueryOptions.HIT_LIST, Boolean.toString(config.isHitList()), false);
         addOption(cfg, QueryOptions.TYPE_METADATA_IN_HDFS, Boolean.toString(config.isTypeMetadataInHdfs()), true);
@@ -595,7 +601,7 @@ public class DefaultQueryPlanner extends QueryPlanner {
         
         stopwatch.stop();
         
-        if (query.contains("filter:options")) {
+        if (query.contains(QueryFunctions.QUERY_FUNCTION_NAMESPACE + ':')) {
             // only do the extra tree visit if the function is present
             stopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - parse out queryOptions from options function");
             Map<String,String> optionsMap = new HashMap<>();
@@ -812,7 +818,7 @@ public class DefaultQueryPlanner extends QueryPlanner {
         
         // Figure out if the query contained any term frequency terms so we know
         // if we may use the term frequencies instead of the fields index in some cases
-        Set<String> queryTfFields = Collections.<String> emptySet();
+        Set<String> queryTfFields = Collections.emptySet();
         Set<String> termFrequencyFields;
         try {
             termFrequencyFields = metadataHelper.getTermFrequencyFields(config.getDatatypeFilter());
@@ -866,6 +872,8 @@ public class DefaultQueryPlanner extends QueryPlanner {
                 expansionFields = metadataHelper.getExpansionFields(config.getDatatypeFilter());
                 queryTree = FixUnfieldedTermsVisitor.fixUnfieldedTree(config, scannerFactory, metadataHelper, queryTree, expansionFields);
             } catch (CannotExpandUnfieldedTermFatalException e) {
+                // The visitor will only throw this if we cannot expand a term that is not nested in an or.
+                // Hence this query would return no results.
                 stopwatch.stop();
                 NotFoundQueryException qe = new NotFoundQueryException(DatawaveErrorCode.UNFIELDED_QUERY_ZERO_MATCHES, e, MessageFormat.format("Query: ",
                                 queryData.getQuery()));
@@ -896,23 +904,23 @@ public class DefaultQueryPlanner extends QueryPlanner {
             if (log.isDebugEnabled()) {
                 log.debug("Testing for non-existent fields, found: " + nonexistentFields.size());
             }
-            if (nonexistentFields.size() > 0) {
+            if (!nonexistentFields.isEmpty()) {
                 String datatypeFilterSet = (null == config.getDatatypeFilter()) ? "none" : config.getDatatypeFilter().toString();
                 if (log.isTraceEnabled()) {
                     try {
                         log.trace("current size of fields" + metadataHelper.getAllFields(config.getDatatypeFilter()));
-                        log.trace("all fields: " + metadataHelper.getAllFields(config.getDatatypeFilter()).toString());
+                        log.trace("all fields: " + metadataHelper.getAllFields(config.getDatatypeFilter()));
                     } catch (TableNotFoundException e) {
                         log.error("table not found when reading metadata", e);
                     }
                     log.trace("QueryModel:" + (null == queryModel ? "null" : queryModel));
-                    log.trace("metadataHelper " + metadataHelper.toString());
+                    log.trace("metadataHelper " + metadataHelper);
                 }
                 log.trace("QueryModel:" + (null == queryModel ? "null" : queryModel));
-                log.trace("metadataHelper " + metadataHelper.toString());
+                log.trace("metadataHelper " + metadataHelper);
                 
                 BadRequestQueryException qe = new BadRequestQueryException(DatawaveErrorCode.FIELDS_NOT_IN_DATA_DICTIONARY, MessageFormat.format(
-                                "Datatype: {0}, datatype.filter.set: {1}, Auths: {2}", nonexistentFields, datatypeFilterSet, config.getAuthorizations()));
+                                "Datatype Filter: {0}, Missing Fields: {1}, Auths: {2}", datatypeFilterSet, nonexistentFields, config.getAuthorizations()));
                 log.error(qe);
                 throw new InvalidQueryException(qe);
             }
@@ -1016,6 +1024,19 @@ public class DefaultQueryPlanner extends QueryPlanner {
             stopwatch.stop();
         }
         
+        if (executableExpansion) {
+            stopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Executable expansion");
+            
+            // apply distributive property to deal with executability if necessary
+            queryTree = ExecutableExpansionVisitor.expand(queryTree, config, metadataHelper);
+            
+            if (log.isDebugEnabled()) {
+                logQuery(queryTree, "Query after ExecutableExpansion");
+            }
+            
+            stopwatch.stop();
+        }
+        
         // lets precomputed the indexed fields and index only fields for the specific datatype if needed below
         Set<String> indexedFields = null;
         Set<String> indexOnlyFields = null;
@@ -1042,7 +1063,7 @@ public class DefaultQueryPlanner extends QueryPlanner {
             
             List<String> debugOutput = null;
             if (log.isDebugEnabled()) {
-                debugOutput = new ArrayList<String>(32);
+                debugOutput = new ArrayList<>(32);
             }
             if (!ExecutableDeterminationVisitor.isExecutable(queryTree, config, indexedFields, indexOnlyFields, nonEventFields, debugOutput, metadataHelper)) {
                 queryTree = (ASTJexlScript) PushdownUnexecutableNodesVisitor.pushdownPredicates(queryTree, config, indexedFields, indexOnlyFields,
@@ -1080,7 +1101,7 @@ public class DefaultQueryPlanner extends QueryPlanner {
                 // reexpand
                 List<String> debugOutput = null;
                 if (log.isDebugEnabled()) {
-                    debugOutput = new ArrayList<String>(32);
+                    debugOutput = new ArrayList<>(32);
                 }
                 
                 // Unless config.isExandAllTerms is true, this may set some of
@@ -1255,7 +1276,7 @@ public class DefaultQueryPlanner extends QueryPlanner {
                     }
                     builder.append(dataType);
                 }
-                log.trace("Datatypes: " + builder.toString());
+                log.trace("Datatypes: " + builder);
                 builder.delete(0, builder.length());
                 
                 for (String field : allFields) {
@@ -1264,7 +1285,7 @@ public class DefaultQueryPlanner extends QueryPlanner {
                     }
                     builder.append(field);
                 }
-                log.trace("allFields: " + builder.toString());
+                log.trace("allFields: " + builder);
             }
         } catch (TableNotFoundException e) {
             stopwatch.stop();
@@ -1371,11 +1392,11 @@ public class DefaultQueryPlanner extends QueryPlanner {
             }
             log.info("Adding date filters for the following fields: " + dateIndexData.getFields());
             // now for each field, add an expression to filter that date
-            List<JexlNode> andChildren = new ArrayList<JexlNode>();
+            List<JexlNode> andChildren = new ArrayList<>();
             for (int i = 0; i < queryTree.jjtGetNumChildren(); i++) {
                 andChildren.add(JexlNodeFactory.createExpression(queryTree.jjtGetChild(i)));
             }
-            List<JexlNode> orChildren = new ArrayList<JexlNode>();
+            List<JexlNode> orChildren = new ArrayList<>();
             for (String field : dateIndexData.getFields()) {
                 orChildren.add(createDateFilter(dateType, field, config.getBeginDate(), config.getEndDate()));
             }
@@ -1773,7 +1794,7 @@ public class DefaultQueryPlanner extends QueryPlanner {
         
         addOption(cfg, QueryOptions.REDUCED_RESPONSE, Boolean.toString(config.isReducedResponse()), false);
         addOption(cfg, QueryOptions.DISABLE_EVALUATION, Boolean.toString(config.isDisableEvaluation()), false);
-        addOption(cfg, QueryOptions.DISABLE_DOCUMENTS_WITHOUT_EVENTS, Boolean.toString(config.disableIndexOnlyDocuments()), false);
+        addOption(cfg, QueryOptions.DISABLE_DOCUMENTS_WITHOUT_EVENTS, Boolean.toString(config.isDisableIndexOnlyDocuments()), false);
         addOption(cfg, QueryOptions.INCLUDE_GROUPING_CONTEXT, Boolean.toString(config.getIncludeGroupingContext()), false);
         addOption(cfg, QueryOptions.CONTAINS_INDEX_ONLY_TERMS, Boolean.toString(config.isContainsIndexOnlyTerms()), false);
         addOption(cfg, QueryOptions.CONTAINS_COMPOSITE_TERMS, Boolean.toString(config.isContainsCompositeTerms()), false);
@@ -1834,7 +1855,7 @@ public class DefaultQueryPlanner extends QueryPlanner {
         // required
         List<String> debugOutput = null;
         if (log.isDebugEnabled()) {
-            debugOutput = new ArrayList<String>(32);
+            debugOutput = new ArrayList<>(32);
         }
         STATE state = ExecutableDeterminationVisitor.getState(queryTree, config, metadataHelper, debugOutput);
         if (log.isDebugEnabled()) {
@@ -2217,6 +2238,14 @@ public class DefaultQueryPlanner extends QueryPlanner {
     
     public void setCompressUids(boolean compressUidsInRangeStream) {
         this.compressUidsInRangeStream = compressUidsInRangeStream;
+    }
+    
+    public boolean getExecutableExpansion() {
+        return executableExpansion;
+    }
+    
+    public void setExecutableExpansion(boolean executableExpansion) {
+        this.executableExpansion = executableExpansion;
     }
     
     /**

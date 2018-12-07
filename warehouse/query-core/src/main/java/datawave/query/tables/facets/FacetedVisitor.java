@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import datawave.query.iterator.PowerSet;
+import datawave.util.UniversalSet;
 import datawave.query.iterator.SourceManager;
 import datawave.query.iterator.builder.IteratorBuilder;
 import datawave.query.jexl.JexlASTHelper;
@@ -56,7 +56,7 @@ public class FacetedVisitor extends BaseVisitor {
     protected SortedKeyValueIterator<Key,Value> limitedSource = null;
     protected Map<Entry<String,String>,Entry<Key,Value>> limitedMap = null;
     protected IteratorEnvironment env;
-    protected Collection<String> includeReferences = PowerSet.instance();
+    protected Collection<String> includeReferences = UniversalSet.instance();
     protected Collection<String> excludeReferences = Collections.emptyList();
     protected Predicate<Key> datatypeFilter;
     protected TimeFilter timeFilter;
@@ -163,7 +163,7 @@ public class FacetedVisitor extends BaseVisitor {
                 Key endKey = new Key(new Text(row), new Text(cf.toString()), new Text(stringLiteral + "\u1111"));
                 try {
                     
-                    source.seek(new Range(startKey, true, endKey, false), Collections.<ByteSequence> emptyList(), false);
+                    source.seek(new Range(startKey, true, endKey, false), Collections.emptyList(), false);
                     kvIterList.add(new SortedKeyValueIteratorToIterator(source));
                     
                 } catch (IOException e) {

@@ -6,8 +6,12 @@ import java.util.Map;
 
 import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.LiteralRange;
-import datawave.query.jexl.nodes.*;
 
+import datawave.query.jexl.nodes.ExceededOrThresholdMarkerJexlNode;
+import datawave.query.jexl.nodes.ExceededTermThresholdMarkerJexlNode;
+import datawave.query.jexl.nodes.ExceededValueThresholdMarkerJexlNode;
+import datawave.query.jexl.nodes.IndexHoleMarkerJexlNode;
+import datawave.query.jexl.nodes.QueryPropertyMarker;
 import org.apache.commons.jexl2.parser.ASTAndNode;
 import org.apache.commons.jexl2.parser.ASTAssignment;
 import org.apache.commons.jexl2.parser.ASTDelayedPredicate;
@@ -65,12 +69,11 @@ public class TreeFlatteningRebuildingVisitor extends RebuildingVisitor {
         ASTOrNode orNode = JexlNodes.newInstanceOfType(node);
         orNode.image = node.image;
         
-        JexlNode newNode = flattenTree(node, orNode, data);
-        return newNode;
+        return flattenTree(node, orNode, data);
     }
     
     private boolean isBoundedRange(ASTAndNode node) {
-        List<JexlNode> otherNodes = new ArrayList<JexlNode>();
+        List<JexlNode> otherNodes = new ArrayList<>();
         Map<LiteralRange<?>,List<JexlNode>> ranges = JexlASTHelper.getBoundedRangesIndexAgnostic(node, otherNodes, false);
         if (ranges.size() == 1 && otherNodes.isEmpty()) {
             return true;
@@ -87,8 +90,7 @@ public class TreeFlatteningRebuildingVisitor extends RebuildingVisitor {
             ASTAndNode andNode = JexlNodes.newInstanceOfType(node);
             andNode.image = node.image;
             
-            JexlNode newNode = flattenTree(node, andNode, data);
-            return newNode;
+            return flattenTree(node, andNode, data);
         }
         
     }

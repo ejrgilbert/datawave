@@ -85,7 +85,7 @@ public class GeoWaveFunctionsDescriptor implements JexlFunctionArgumentDescripto
                         list.add(getIndexNode(kid.image, env, maxExpansion));
                     }
                 }
-                if (list.size() > 0) {
+                if (!list.isEmpty()) {
                     return JexlNodeFactory.createOrNode(list);
                 }
             } else if (node.image != null) {
@@ -103,7 +103,7 @@ public class GeoWaveFunctionsDescriptor implements JexlFunctionArgumentDescripto
                         list.add(getIndexNode(kid.image, envs, maxExpansion));
                     }
                 }
-                if (list.size() > 0) {
+                if (!list.isEmpty()) {
                     return JexlNodeFactory.createOrNode(list);
                 }
             } else if (node.image != null) {
@@ -113,13 +113,13 @@ public class GeoWaveFunctionsDescriptor implements JexlFunctionArgumentDescripto
         }
         
         protected static JexlNode getIndexNode(String fieldName, Envelope env, int maxExpansion) {
-            List<Envelope> envs = new ArrayList<Envelope>();
+            List<Envelope> envs = new ArrayList<>();
             envs.add(env);
             return getIndexNode(fieldName, envs, maxExpansion);
         }
         
         protected static JexlNode getIndexNode(String fieldName, List<Envelope> envs, int maxExpansion) {
-            List<ByteArrayRange> allRanges = new ArrayList<ByteArrayRange>();
+            List<ByteArrayRange> allRanges = new ArrayList<>();
             int maxRanges = maxExpansion / envs.size();
             for (Envelope env : envs) {
                 for (MultiDimensionalNumericData range : GeometryUtils.basicConstraintsFromEnvelope(env).getIndexConstraints(GeometryNormalizer.indexStrategy)) {
@@ -237,7 +237,7 @@ public class GeoWaveFunctionsDescriptor implements JexlFunctionArgumentDescripto
                 JexlNode leNode = JexlNodeFactory.buildNode(new ASTLENode(ParserTreeConstants.JJTLENODE), fieldName,
                                 GeometryNormalizer.getEncodedStringFromIndexBytes(input.getEnd()));
                 // now link em up
-                return JexlNodeFactory.createAndNode(Arrays.asList(new JexlNode[] {geNode, leNode}));
+                return JexlNodeFactory.createAndNode(Arrays.asList(geNode, leNode));
             }
         }
         

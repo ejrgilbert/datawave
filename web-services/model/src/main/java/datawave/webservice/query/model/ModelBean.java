@@ -1,44 +1,9 @@
 package datawave.webservice.query.model;
 
-import java.security.Principal;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Resource;
-import javax.annotation.security.DeclareRoles;
-import javax.annotation.security.RolesAllowed;
-import javax.ejb.EJB;
-import javax.ejb.EJBContext;
-import javax.ejb.LocalBean;
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
-import javax.ejb.TransactionManagement;
-import javax.ejb.TransactionManagementType;
-import javax.inject.Inject;
-import javax.interceptor.Interceptors;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-
 import com.google.common.collect.Sets;
 import datawave.annotation.Required;
-import datawave.configuration.spring.SpringBean;
 import datawave.interceptor.RequiredInterceptor;
 import datawave.interceptor.ResponseInterceptor;
-import datawave.marking.MarkingFunctions;
 import datawave.security.authorization.DatawavePrincipal;
 import datawave.security.util.ScannerHelper;
 import datawave.webservice.common.cache.AccumuloTableCache;
@@ -65,6 +30,36 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.jboss.resteasy.annotations.GZIP;
+
+import javax.annotation.Resource;
+import javax.annotation.security.DeclareRoles;
+import javax.annotation.security.RolesAllowed;
+import javax.ejb.EJB;
+import javax.ejb.EJBContext;
+import javax.ejb.LocalBean;
+import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
+import javax.ejb.TransactionManagement;
+import javax.ejb.TransactionManagementType;
+import javax.interceptor.Interceptors;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import java.security.Principal;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Service that supports manipulation of models. The models are contained in the data dictionary table.
@@ -114,7 +109,7 @@ public class ModelBean {
     @Path("/list")
     @GZIP
     @Interceptors(ResponseInterceptor.class)
-    public ModelList listModelNames(@QueryParam("modelTableName") @DefaultValue("DatawaveMetadata") String modelTableName) {
+    public ModelList listModelNames(@QueryParam("modelTableName") @DefaultValue(DEFAULT_MODEL_TABLE_NAME) String modelTableName) {
         ModelList response = new ModelList();
         
         // Find out who/what called this method
@@ -128,7 +123,7 @@ public class ModelBean {
                 cbAuths.add(new Authorizations(auths.toArray(new String[auths.size()])));
             }
         }
-        log.trace(user + " has authorizations " + cbAuths.toString());
+        log.trace(user + " has authorizations " + cbAuths);
         
         Connector connector = null;
         HashSet<String> modelNames = new HashSet<>();
@@ -186,7 +181,8 @@ public class ModelBean {
     @GZIP
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @Interceptors(ResponseInterceptor.class)
-    public VoidResponse importModel(datawave.webservice.model.Model model, @QueryParam("modelTableName") @DefaultValue("DatawaveMetadata") String modelTableName) {
+    public VoidResponse importModel(datawave.webservice.model.Model model,
+                    @QueryParam("modelTableName") @DefaultValue(DEFAULT_MODEL_TABLE_NAME) String modelTableName) {
         if (log.isDebugEnabled()) {
             log.debug("modelTableName: " + (null == modelTableName ? "" : modelTableName));
         }
@@ -223,7 +219,7 @@ public class ModelBean {
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @Interceptors({RequiredInterceptor.class, ResponseInterceptor.class})
     public VoidResponse deleteModel(@Required("name") @PathParam("name") String name,
-                    @QueryParam("modelTableName") @DefaultValue("DatawaveMetadata") String modelTableName) {
+                    @QueryParam("modelTableName") @DefaultValue(DEFAULT_MODEL_TABLE_NAME) String modelTableName) {
         return deleteModel(name, modelTableName, true);
     }
     
@@ -268,7 +264,7 @@ public class ModelBean {
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @Interceptors({RequiredInterceptor.class, ResponseInterceptor.class})
     public VoidResponse cloneModel(@Required("name") @FormParam("name") String name, @Required("newName") @FormParam("newName") String newName,
-                    @FormParam("modelTableName") @DefaultValue("DatawaveMetadata") String modelTableName) {
+                    @FormParam("modelTableName") @DefaultValue(DEFAULT_MODEL_TABLE_NAME) String modelTableName) {
         VoidResponse response = new VoidResponse();
         datawave.webservice.model.Model model = getModel(name, modelTableName);
         // Set the new name
@@ -298,7 +294,7 @@ public class ModelBean {
     @GZIP
     @Interceptors({RequiredInterceptor.class, ResponseInterceptor.class})
     public datawave.webservice.model.Model getModel(@Required("name") @PathParam("name") String name,
-                    @QueryParam("modelTableName") @DefaultValue("DatawaveMetadata") String modelTableName) {
+                    @QueryParam("modelTableName") @DefaultValue(DEFAULT_MODEL_TABLE_NAME) String modelTableName) {
         datawave.webservice.model.Model response = new datawave.webservice.model.Model();
         
         // Find out who/what called this method
@@ -312,7 +308,7 @@ public class ModelBean {
                 cbAuths.add(new Authorizations(auths.toArray(new String[auths.size()])));
             }
         }
-        log.trace(user + " has authorizations " + cbAuths.toString());
+        log.trace(user + " has authorizations " + cbAuths);
         
         Connector connector = null;
         try {
@@ -342,7 +338,7 @@ public class ModelBean {
         }
         
         // return 404 if model not found
-        if (response.getFields().size() == 0) {
+        if (response.getFields().isEmpty()) {
             throw new NotFoundException(null, response);
         }
         
@@ -372,7 +368,7 @@ public class ModelBean {
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @Interceptors(ResponseInterceptor.class)
     public VoidResponse insertMapping(datawave.webservice.model.Model model,
-                    @QueryParam("modelTableName") @DefaultValue("DatawaveMetadata") String modelTableName) {
+                    @QueryParam("modelTableName") @DefaultValue(DEFAULT_MODEL_TABLE_NAME) String modelTableName) {
         VoidResponse response = new VoidResponse();
         
         Connector connector = null;
@@ -437,7 +433,7 @@ public class ModelBean {
     @RolesAllowed({"Administrator", "JBossAdministrator"})
     @Interceptors(ResponseInterceptor.class)
     public VoidResponse deleteMapping(datawave.webservice.model.Model model,
-                    @QueryParam("modelTableName") @DefaultValue("DatawaveMetadata") String modelTableName) {
+                    @QueryParam("modelTableName") @DefaultValue(DEFAULT_MODEL_TABLE_NAME) String modelTableName) {
         return deleteMapping(model, modelTableName, true);
     }
     

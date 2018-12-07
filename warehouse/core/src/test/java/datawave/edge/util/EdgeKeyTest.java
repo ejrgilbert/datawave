@@ -2,8 +2,6 @@ package datawave.edge.util;
 
 import static org.junit.Assert.*;
 
-import junit.framework.Assert;
-import datawave.edge.util.EdgeKey;
 import datawave.edge.util.EdgeKey.EDGE_FORMAT;
 import datawave.edge.util.EdgeKey.EdgeKeyBuilder;
 import datawave.edge.util.EdgeKey.STATS_TYPE;
@@ -12,6 +10,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -114,8 +113,7 @@ public class EdgeKeyTest {
     private EdgeKey encodeCopyDecode(EdgeKey inKey) {
         EdgeKey copyKey = EdgeKey.newBuilder(inKey).build();
         Key encodedKey = copyKey.encode();
-        EdgeKey decodedKey = EdgeKey.decode(encodedKey);
-        return decodedKey;
+        return EdgeKey.decode(encodedKey);
     }
     
     @Test

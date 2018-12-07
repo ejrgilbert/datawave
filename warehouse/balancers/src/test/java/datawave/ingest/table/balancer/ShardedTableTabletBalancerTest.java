@@ -524,16 +524,16 @@ public class ShardedTableTabletBalancerTest {
         ArrayList<TabletMigration> migrationsOut = new ArrayList<>();
         for (int i = 1; i <= numPasses; i++) {
             migrationsOut.clear();
-            testBalancer.balance(testTServers.getCurrent(), new HashSet<KeyExtent>(), migrationsOut);
+            testBalancer.balance(testTServers.getCurrent(), new HashSet<>(), migrationsOut);
             ensureUniqueMigrations(migrationsOut);
             testTServers.applyMigrations(migrationsOut);
             
-            if (migrationsOut.size() == 0)
+            if (migrationsOut.isEmpty())
                 break;
         }
         // Then balance one more time to make sure no migrations are returned.
         migrationsOut.clear();
-        testBalancer.balance(testTServers.getCurrent(), new HashSet<KeyExtent>(), migrationsOut);
+        testBalancer.balance(testTServers.getCurrent(), new HashSet<>(), migrationsOut);
         assertEquals("Left with " + migrationsOut.size() + " migrations after " + numPasses + " balance attempts.", 0, migrationsOut.size());
         testTServers.checkBalance(testBalancer.getPartitioner());
     }

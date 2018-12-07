@@ -42,7 +42,7 @@ public class FieldNameLookup extends IndexLookup {
     protected IndexLookupMap fieldToTerms = null;
     
     public FieldNameLookup(Set<String> fields, Set<String> terms) {
-        this.fields = new HashSet<Text>();
+        this.fields = new HashSet<>();
         
         if (fields != null) {
             for (String field : fields) {
@@ -51,7 +51,7 @@ public class FieldNameLookup extends IndexLookup {
             
         }
         
-        this.terms = new HashSet<String>(terms);
+        this.terms = new HashSet<>(terms);
     }
     
     public void setTypeFilterSet(Set<String> limitSet) {
@@ -93,11 +93,11 @@ public class FieldNameLookup extends IndexLookup {
                 if (limitToTerms) {
                     log.trace("Creating configureTermMatchOnly");
                     bs = ShardIndexQueryTableStaticMethods.configureTermMatchOnly(config, scannerFactory, config.getIndexTableName(), ranges,
-                                    Collections.singleton(term), Collections.<String> emptySet(), false, true);
+                                    Collections.singleton(term), Collections.emptySet(), false, true);
                 } else {
                     log.trace("Creating configureLimitedDiscovery");
                     bs = ShardIndexQueryTableStaticMethods.configureLimitedDiscovery(config, scannerFactory, config.getIndexTableName(), ranges,
-                                    Collections.singleton(term), Collections.<String> emptySet(), false, true);
+                                    Collections.singleton(term), Collections.emptySet(), false, true);
                 }
                 /**
                  * Fetch the limited field names for the given rows
@@ -116,7 +116,7 @@ public class FieldNameLookup extends IndexLookup {
                 while (iter.hasNext()) {
                     Entry<Key,Value> entry = iter.next();
                     if (log.isTraceEnabled()) {
-                        log.trace("Index entry: " + entry.getKey().toString());
+                        log.trace("Index entry: " + entry.getKey());
                     }
                     
                     entry.getKey().getRow(holder);
@@ -127,7 +127,7 @@ public class FieldNameLookup extends IndexLookup {
                     
                     entry.getKey().getColumnQualifier(holder);
                     
-                    if (typeFilterSet.size() > 0) {
+                    if (!typeFilterSet.isEmpty()) {
                         try {
                             String dataType = holder.toString().split(Constants.NULL)[1];
                             if (!typeFilterSet.contains(dataType))

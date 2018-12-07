@@ -44,7 +44,12 @@ public class JexlRule extends AppliedRule {
     
     @Override
     public void init(FilterOptions options) {
-        super.init(options);
+        init(options, null);
+    }
+    
+    @Override
+    public void init(FilterOptions options, IteratorEnvironment iterEnv) {
+        super.init(options, iterEnv);
         
         isApplied = false;
         
@@ -108,7 +113,7 @@ public class JexlRule extends AppliedRule {
                 if (log.isDebugEnabled())
                     log.debug(topKey);
                 queryIter.seek(new Range(new Key(topKey.getRow(), topKey.getColumnFamily()), true, topKey.followingKey(PartialKey.ROW_COLFAM), false),
-                                Collections.<ByteSequence> emptyList(), false);
+                                Collections.emptyList(), false);
                 
             } catch (IOException e) {
                 log.error(e);

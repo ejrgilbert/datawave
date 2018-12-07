@@ -66,11 +66,11 @@ public class DiscoveryTransformer extends BaseQueryLogicTransformer<DiscoveredTh
         fields.add(this.makeField("DATA TYPE", markings, "", 0L, thing.getType()));
         
         // If requested return counts separated by colvis, all counts by colvis could be > total record count
-        if (thing.getCountsByColumnVisibility() != null && thing.getCountsByColumnVisibility().size() > 0) {
+        if (thing.getCountsByColumnVisibility() != null && !thing.getCountsByColumnVisibility().isEmpty()) {
             for (Map.Entry<Writable,Writable> entry : thing.getCountsByColumnVisibility().entrySet()) {
                 try {
                     Map<String,String> eMarkings = this.markingFunctions.translateFromColumnVisibility(new ColumnVisibility(entry.getKey().toString()));
-                    fields.add(this.makeField("RECORD COUNT", new HashMap<String,String>(), entry.getKey().toString(), 0L, entry.getValue().toString()));
+                    fields.add(this.makeField("RECORD COUNT", new HashMap<>(), entry.getKey().toString(), 0L, entry.getValue().toString()));
                 } catch (Exception e) {
                     throw new RuntimeException("could not parse to markings: " + thing.getColumnVisibility());
                 }

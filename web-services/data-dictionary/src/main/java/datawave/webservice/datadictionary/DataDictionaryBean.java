@@ -15,7 +15,6 @@ import datawave.webservice.query.result.event.ResponseObjectFactory;
 import datawave.webservice.query.result.metadata.MetadataFieldBase;
 import datawave.webservice.result.VoidResponse;
 import datawave.webservice.results.datadictionary.DataDictionaryBase;
-import datawave.webservice.results.datadictionary.DefaultFields;
 import datawave.webservice.results.datadictionary.DescriptionBase;
 import datawave.webservice.results.datadictionary.DictionaryFieldBase;
 import datawave.webservice.results.datadictionary.FieldsBase;
@@ -45,8 +44,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.xml.bind.annotation.XmlSeeAlso;
-
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collection;
@@ -114,7 +111,7 @@ public class DataDictionaryBean {
             sid = cp.getShortName();
             cbAuths.addAll(cp.getAuthorizations());
         }
-        log.trace(sid + " has authorizations " + cbAuths.toString());
+        log.trace(sid + " has authorizations " + cbAuths);
         
         return AuthorizationsUtil.buildAuthorizations(cbAuths);
     }
@@ -154,7 +151,7 @@ public class DataDictionaryBean {
             metadataTableName = this.dataDictionaryConfiguration.getMetadataTableName();
         }
         
-        Collection<String> dataTypes = (StringUtils.isBlank(dataTypeFilters) ? Collections.<String> emptyList() : Arrays.asList(dataTypeFilters.split(",")));
+        Collection<String> dataTypes = (StringUtils.isBlank(dataTypeFilters) ? Collections.emptyList() : Arrays.asList(dataTypeFilters.split(",")));
         
         Connector connector = null;
         try {

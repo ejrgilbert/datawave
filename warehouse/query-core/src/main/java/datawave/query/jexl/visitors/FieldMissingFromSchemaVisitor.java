@@ -59,7 +59,7 @@ public class FieldMissingFromSchemaVisitor extends BaseVisitor {
     @SuppressWarnings("unchecked")
     public static Set<String> getNonExistentFields(MetadataHelper helper, ASTJexlScript script, Set<String> datatypes, Set<String> specialFields) {
         FieldMissingFromSchemaVisitor visitor = new FieldMissingFromSchemaVisitor(helper, datatypes, specialFields);
-        return (Set<String>) script.jjtAccept(visitor, new HashSet<String>());
+        return (Set<String>) script.jjtAccept(visitor, new HashSet<>());
     }
     
     /**
@@ -72,7 +72,7 @@ public class FieldMissingFromSchemaVisitor extends BaseVisitor {
      */
     protected Object genericVisit(JexlNode node, Object data) {
         @SuppressWarnings("unchecked")
-        Set<String> nonExistentFieldNames = (null == data) ? new HashSet<String>() : (Set<String>) data;
+        Set<String> nonExistentFieldNames = (null == data) ? new HashSet<>() : (Set<String>) data;
         List<ASTIdentifier> identifiers;
         
         // A node could be literal == literal in terms of an identityQuery
@@ -82,7 +82,7 @@ public class FieldMissingFromSchemaVisitor extends BaseVisitor {
             return nonExistentFieldNames;
         }
         
-        if (identifiers.size() == 0) {
+        if (identifiers.isEmpty()) {
             // Catch cases where we have two literals
             // essentially everything but identifier op literal
             return nonExistentFieldNames;
@@ -141,7 +141,7 @@ public class FieldMissingFromSchemaVisitor extends BaseVisitor {
     public Object visit(ASTFunctionNode node, Object data) {
         JexlArgumentDescriptor desc = JexlFunctionArgumentDescriptorFactory.F.getArgumentDescriptor(node);
         @SuppressWarnings("unchecked")
-        Set<String> nonExistentFieldNames = (null == data) ? new HashSet<String>() : (Set<String>) data;
+        Set<String> nonExistentFieldNames = (null == data) ? new HashSet<>() : (Set<String>) data;
         
         for (String fieldName : desc.fields(this.helper, this.datatypeFilter)) {
             // deconstruct the identifier

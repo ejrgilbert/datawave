@@ -40,6 +40,7 @@ import org.junit.runner.RunWith;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -57,7 +58,7 @@ import java.util.UUID;
 import static datawave.query.QueryTestTableHelper.*;
 
 /**
- * Tests the composite functions, the #JEXL lucene function, and the matchesAtLeastCountOf function
+ * Tests the composite functions, the #JEXL lucene function, the matchesAtLeastCountOf function. and others
  * 
  */
 public abstract class CompositeFunctionsTest {
@@ -65,9 +66,13 @@ public abstract class CompositeFunctionsTest {
     @RunWith(Arquillian.class)
     public static class ShardRange extends CompositeFunctionsTest {
         protected static Connector connector = null;
+        private static final String tempDirForCompositeFunctionsTest = "/tmp/TempDirForCompositeFunctionsTestShardRange";
         
         @BeforeClass
         public static void setUp() throws Exception {
+            // this will get property substituted into the TypeMetadataBridgeContext.xml file
+            // for the injection test (when this unit test is first created)
+            System.setProperty("type.metadata.dir", tempDirForCompositeFunctionsTest);
             
             QueryTestTableHelper qtth = new QueryTestTableHelper(CompositeFunctionsTest.ShardRange.class.toString(), log);
             connector = qtth.connector;
@@ -80,6 +85,20 @@ public abstract class CompositeFunctionsTest {
             PrintUtility.printTable(connector, auths, MODEL_TABLE_NAME);
         }
         
+        @AfterClass
+        public static void teardown() {
+            // maybe delete the temp folder here
+            File tempFolder = new File(tempDirForCompositeFunctionsTest);
+            if (tempFolder.exists()) {
+                try {
+                    FileUtils.forceDelete(tempFolder);
+                } catch (IOException ex) {
+                    log.error(ex);
+                }
+            }
+            TypeRegistry.reset();
+        }
+        
         @Override
         protected void runTestQuery(List<String> expected, String querystr, Date startDate, Date endDate, Map<String,String> extraParms) throws Exception {
             super.runTestQuery(expected, querystr, startDate, endDate, extraParms, connector);
@@ -89,9 +108,13 @@ public abstract class CompositeFunctionsTest {
     @RunWith(Arquillian.class)
     public static class DocumentRange extends CompositeFunctionsTest {
         protected static Connector connector = null;
+        private static final String tempDirForCompositeFunctionsTest = "/tmp/TempDirForCompositeFunctionsTestDocumentRange";
         
         @BeforeClass
         public static void setUp() throws Exception {
+            // this will get property substituted into the TypeMetadataBridgeContext.xml file
+            // for the injection test (when this unit test is first created)
+            System.setProperty("type.metadata.dir", tempDirForCompositeFunctionsTest);
             
             QueryTestTableHelper qtth = new QueryTestTableHelper(CompositeFunctionsTest.DocumentRange.class.toString(), log);
             connector = qtth.connector;
@@ -102,6 +125,20 @@ public abstract class CompositeFunctionsTest {
             PrintUtility.printTable(connector, auths, SHARD_INDEX_TABLE_NAME);
             PrintUtility.printTable(connector, auths, METADATA_TABLE_NAME);
             PrintUtility.printTable(connector, auths, MODEL_TABLE_NAME);
+        }
+        
+        @AfterClass
+        public static void teardown() {
+            // maybe delete the temp folder here
+            File tempFolder = new File(tempDirForCompositeFunctionsTest);
+            if (tempFolder.exists()) {
+                try {
+                    FileUtils.forceDelete(tempFolder);
+                } catch (IOException ex) {
+                    log.error(ex);
+                }
+            }
+            TypeRegistry.reset();
         }
         
         @Override
@@ -119,29 +156,6 @@ public abstract class CompositeFunctionsTest {
     @Inject
     @SpringBean(name = "EventQuery")
     protected ShardQueryLogic logic;
-    
-    private static final String tempDirForCompositeFunctionsTest = "/tmp/TempDirForCompositeFunctionsTest";
-    
-    @BeforeClass
-    public static void beforeClass() {
-        // this will get property substituted into the TypeMetadataBridgeContext.xml file
-        // for the injection test (when this unit test is first created)
-        System.setProperty("type.metadata.dir", tempDirForCompositeFunctionsTest);
-    }
-    
-    @AfterClass
-    public static void teardown() {
-        // maybe delete the temp folder here
-        File tempFolder = new File(tempDirForCompositeFunctionsTest);
-        if (tempFolder.exists()) {
-            try {
-                FileUtils.forceDelete(tempFolder);
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        }
-        TypeRegistry.reset();
-    }
     
     private KryoDocumentDeserializer deserializer;
     
@@ -275,10 +289,10 @@ public abstract class CompositeFunctionsTest {
         // @formatter:off
         String[] queryStrings = {
                 "UUID =~ '^[CS].*' AND filter:matchesAtLeastCountOf(3,NAM,'MICHAEL','VINCENT','FREDO','TONY') "+
-                        "AND filter:options('type.metadata.in.hdfs','true','include.grouping.context','true','hit.list','true')",
+                        "AND f:options('type.metadata.in.hdfs','true','include.grouping.context','true','hit.list','true')",
 
                 "UUID =~ '^[CS].*' AND filter:matchesAtLeastCountOf(3,NAME,'MICHAEL','VINCENT','FRED','TONY') "+
-                        "OR filter:options('type.metadata.in.hdfs','true','include.grouping.context','true','hit.list','true')"
+                        "OR f:options('type.metadata.in.hdfs','true','include.grouping.context','true','hit.list','true')"
         };
 
         @SuppressWarnings("unchecked")
@@ -311,13 +325,8 @@ public abstract class CompositeFunctionsTest {
         };
         // timeFunction(Object time1, Object time2, String operatorString, String equalityString, long goal)
         @SuppressWarnings("unchecked")
-        List<String>[] expectedLists = new List[] {
-                Collections.singletonList("CAPONE"),
-                Arrays.asList("CORLEONE", "CAPONE"),
-                Collections.singletonList("CAPONE"),
-                Collections.singletonList("CAPONE")
-        };
-        // @formatter:on
+        List<String>[] expectedLists = new List[] {Collections.singletonList("CAPONE"), Arrays.asList("CORLEONE", "CAPONE"),
+                Collections.singletonList("CAPONE"), Collections.singletonList("CAPONE"),};
         for (int i = 0; i < queryStrings.length; i++) {
             if (i == 3) {
                 logic.setParser(new LuceneToJexlQueryParser());
@@ -342,16 +351,12 @@ public abstract class CompositeFunctionsTest {
         };
         
         @SuppressWarnings("unchecked")
-        List<String>[] expectedLists = new List[] {
-                Collections.emptyList(),
-                Collections.emptyList()
-        };
-        // @formatter:on
+        List<String>[] expectedLists = new List[] {Collections.emptyList(), Collections.emptyList()};
         for (int i = 0; i < queryStrings.length; i++) {
             try {
                 runTestQuery(expectedLists[i], queryStrings[i], format.parse("20091231"), format.parse("20150101"), extraParameters);
             } catch (Throwable t) {
-                t.printStackTrace();
+                log.error(t);
                 Assert.assertTrue(t instanceof DatawaveFatalQueryException);
             }
         }
@@ -378,20 +383,13 @@ public abstract class CompositeFunctionsTest {
         };
         
         @SuppressWarnings("unchecked")
-        List<String>[] expectedLists = new List[] {
-                Collections.singletonList("CAPONE"),
-                Collections.singletonList("CORLEONE"),
-                Arrays.asList("CORLEONE", "SOPRANO"),
-                Collections.singletonList("CAPONE"),
-
-                Collections.singletonList("CORLEONE")
-        };
-        // @formatter:on
+        List<String>[] expectedLists = new List[] {Collections.singletonList("CAPONE"), Collections.singletonList("CORLEONE"),
+                Arrays.asList("CORLEONE", "SOPRANO"), Collections.singletonList("CAPONE"), Collections.singletonList("CORLEONE"),};
         for (int i = 0; i < queryStrings.length; i++) {
             try {
                 runTestQuery(expectedLists[i], queryStrings[i], format.parse("20091231"), format.parse("20150101"), extraParameters);
             } catch (Throwable t) {
-                t.printStackTrace();
+                log.error(t);
                 Assert.assertTrue(t instanceof DatawaveFatalQueryException);
             }
         }
@@ -419,17 +417,9 @@ public abstract class CompositeFunctionsTest {
         };
         
         @SuppressWarnings("unchecked")
-        List<String>[] expectedLists = new List[] {
-                Collections.singletonList("CORLEONE"),
-                Collections.singletonList("CORLEONE"),
-                Collections.singletonList("CORLEONE"),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.singletonList("CORLEONE"),
-                Collections.singletonList("CORLEONE")
-        };
-        // @formatter:on
+        List<String>[] expectedLists = new List[] {Collections.singletonList("CORLEONE"), Collections.singletonList("CORLEONE"),
+                Collections.singletonList("CORLEONE"), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                Collections.singletonList("CORLEONE"), Collections.singletonList("CORLEONE"),};
         for (int i = 0; i < queryStrings.length; i++) {
             runTestQuery(expectedLists[i], queryStrings[i], format.parse("20091231"), format.parse("20150101"), extraParameters);
         }
@@ -463,24 +453,12 @@ public abstract class CompositeFunctionsTest {
         };
         
         @SuppressWarnings("unchecked")
-        List<String>[] expectedLists = new List[] {
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-                Collections.emptyList(),
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-
-                Collections.emptyList(),
-                Collections.emptyList(),
+        List<String>[] expectedLists = new List[] {Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"), Collections.emptyList(),
+                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"), Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"), Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
+                Collections.emptyList(), Collections.emptyList(),
                 
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList()
-        };
-        // @formatter:on
+                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"), Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"), Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),};
         for (int i = 0; i < queryStrings.length; i++) {
             runTestQuery(expectedLists[i], queryStrings[i], format.parse("20091231"), format.parse("20150101"), extraParameters);
         }
@@ -518,26 +496,12 @@ public abstract class CompositeFunctionsTest {
         };
         
         @SuppressWarnings("unchecked")
-        List<String>[] expectedLists = new List[] {
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-                Collections.emptyList(),
-
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
+        List<String>[] expectedLists = new List[] {Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"), Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(), Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
+                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"), Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
                 
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),
-                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO")
-        };
-        // @formatter:on
+                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"), Arrays.asList("CORLEONE", "CAPONE", "SOPRANO"),};
         for (int i = 0; i < queryStrings.length; i++) {
             runTestQuery(expectedLists[i], queryStrings[i], format.parse("20091231"), format.parse("20150101"), extraParameters);
         }
@@ -590,16 +554,9 @@ public abstract class CompositeFunctionsTest {
         List<String>[] expectedLists = new List[] {
                 Collections.singletonList("SOPRANO"), // family name starts with C or S
                 Collections.singletonList("SOPRANO"), // family name starts with C or S
-                Arrays.asList("CORLEONE", "CAPONE"),
-                Arrays.asList("CORLEONE", "CAPONE"),
-                Arrays.asList("CORLEONE", "CAPONE"),
-                Collections.singletonList("CORLEONE"),
-                Arrays.asList("CORLEONE", "CAPONE"),
-                Collections.singletonList("SOPRANO"),
-                Collections.singletonList("SOPRANO"),
-                Collections.singletonList("CORLEONE")
-        };
-        // @formatter:on
+                Arrays.asList("CORLEONE", "CAPONE"), Arrays.asList("CORLEONE", "CAPONE"), Arrays.asList("CORLEONE", "CAPONE"),
+                Collections.singletonList("CORLEONE"), Arrays.asList("CORLEONE", "CAPONE"), Collections.singletonList("SOPRANO"),
+                Collections.singletonList("SOPRANO"), Collections.singletonList("CORLEONE")};
         for (int i = 0; i < queryStrings.length; i++) {
             runTestQuery(expectedLists[i], queryStrings[i], format.parse("20091231"), format.parse("20150101"), extraParameters);
         }
@@ -642,16 +599,12 @@ public abstract class CompositeFunctionsTest {
                 "UUID:CORLEONE AND #JEXL(\"filter:getAllMatches(NAM,'SANTINO').size() == 1\")"
         };
         @SuppressWarnings("unchecked")
-        List<String>[] expectedLists = new List[] {
-                Arrays.asList("CAPONE", "CORLEONE"), // family name starts with 'C'
+        List<String>[] expectedLists = new List[] {Arrays.asList("CAPONE", "CORLEONE"), // family name starts with 'C'
                 Collections.singletonList("SOPRANO"), // family name is SOPRANO
                 Arrays.asList("SOPRANO", "CORLEONE", "CAPONE"), // family name starts with C or S
                 Collections.singletonList("CORLEONE"), // family has child CONSTANZIA
                 Arrays.asList("CORLEONE", "CAPONE"), // family has child MICHAEL
-                Collections.singletonList("CORLEONE"),
-                Collections.singletonList("CORLEONE")
-        };
-        // @formatter:on
+                Collections.singletonList("CORLEONE"), Collections.singletonList("CORLEONE")};
         for (int i = 0; i < queryStrings.length; i++) {
             runTestQuery(expectedLists[i], queryStrings[i], format.parse("20091231"), format.parse("20150101"), extraParameters);
         }
@@ -693,18 +646,9 @@ public abstract class CompositeFunctionsTest {
     
     @Test
     public void testRightOf() {
-        // @formatter:off
-        String[] inputs = {
-                "NAME.grandparent_0.parent_0.child_0",
-                "NAME.grandparent_0.parent_0.child_0",
-                "NAME.gggparent.ggparent.grandparent_0.parent_0.child_0"
-        };
-        String[] expected = {
-                "child_0",
-                "parent_0.child_0",
-                "ggparent.grandparent_0.parent_0.child_0"
-        };
-        // @formatter:on
+        String[] inputs = {"NAME.grandparent_0.parent_0.child_0", "NAME.grandparent_0.parent_0.child_0",
+                "NAME.gggparent.ggparent.grandparent_0.parent_0.child_0",};
+        String[] expected = {"child_0", "parent_0.child_0", "ggparent.grandparent_0.parent_0.child_0",};
         int[] groupNumber = new int[] {0, 1, 3};
         
         for (int i = 0; i < inputs.length; i++) {

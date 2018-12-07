@@ -26,7 +26,7 @@ class DedupingIterator implements Iterator<Entry<Key,Value>> {
         this.delegate = iterator;
         this.bloom = BloomFilter.create(new ByteFunnel(), 500000, 1e-15);
         if (DEBUG) {
-            this.seen = new HashSet<ByteSequence>();
+            this.seen = new HashSet<>();
         }
         getNext();
     }
@@ -106,8 +106,6 @@ class DedupingIterator implements Iterator<Entry<Key,Value>> {
     public static class ByteFunnel implements Funnel<byte[]>, Serializable {
         
         private static final long serialVersionUID = -2126172579955897986L;
-        
-        public ByteFunnel() {}
         
         @Override
         public void funnel(byte[] from, PrimitiveSink into) {

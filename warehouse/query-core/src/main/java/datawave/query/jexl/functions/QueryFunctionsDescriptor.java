@@ -54,15 +54,13 @@ public class QueryFunctionsDescriptor implements JexlFunctionArgumentDescriptorF
                 JexlNode leNode = JexlNodeFactory.buildNode(new ASTLENode(ParserTreeConstants.JJTLENODE), args.get(0), args.get(2).image);
                 
                 // now link em up
-                JexlNode andNode = JexlNodeFactory.createAndNode(Arrays.asList(new JexlNode[] {geNode, leNode}));
                 
-                returnNode = andNode;
+                returnNode = JexlNodeFactory.createAndNode(Arrays.asList(geNode, leNode));
             } else if (name.equals("length")) {
                 // create a regex node with the appropriate number of matching characters
-                JexlNode reNode = JexlNodeFactory.buildNode(new ASTERNode(ParserTreeConstants.JJTERNODE), args.get(0),
-                                ".{" + args.get(1).image + ',' + args.get(2).image + '}');
                 
-                returnNode = reNode;
+                returnNode = JexlNodeFactory.buildNode(new ASTERNode(ParserTreeConstants.JJTERNODE), args.get(0), ".{" + args.get(1).image + ','
+                                + args.get(2).image + '}');
             }
             return returnNode;
         }
@@ -129,6 +127,14 @@ public class QueryFunctionsDescriptor implements JexlFunctionArgumentDescriptorF
         } else if (name.equals("length")) {
             if (numArgs != 3) {
                 throw new IllegalArgumentException("Wrong number of arguments to length function");
+            }
+        } else if (name.equals(QueryFunctions.OPTIONS_FUNCTION)) {
+            if (numArgs % 2 != 0) {
+                throw new IllegalArgumentException("Expected even number of arguments to options function");
+            }
+        } else if (name.equals(QueryFunctions.UNIQUE_FUNCTION) || name.equals(QueryFunctions.GROUPBY_FUNCTION)) {
+            if (numArgs == 0) {
+                throw new IllegalArgumentException("Expected at least one argument to the " + name + " function");
             }
         } else {
             throw new IllegalArgumentException("Unknown Query function: " + name);

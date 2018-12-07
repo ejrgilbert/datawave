@@ -149,8 +149,8 @@ public class SourcePoolTest {
         final Set<SortedKeyValueIterator<Key,Value>> sources = new HashSet<>();
         final SourcePool<Key,Value> pool = new SourcePool(factory, 100);
         
-        final List<Throwable> failed = new ArrayList<Throwable>();
-        final List<Thread> threads = new ArrayList<Thread>();
+        final List<Throwable> failed = new ArrayList<>();
+        final List<Thread> threads = new ArrayList<>();
         
         for (int i = 0; i < 100; i++) {
             Thread thread = new Thread(() -> {
@@ -162,14 +162,14 @@ public class SourcePoolTest {
                     Assert.assertNotEquals(factory.source, source);
                 } catch (Throwable e) {
                     synchronized (failed) {
-                        e.printStackTrace();
+                        log.error(e);
                         failed.add(e);
                     }
                 }
             });
             thread.setUncaughtExceptionHandler((t, e) -> {
                 synchronized (failed) {
-                    e.printStackTrace();
+                    log.error(e);
                     failed.add(e);
                 }
             });
@@ -204,14 +204,14 @@ public class SourcePoolTest {
                     pool.checkIn(threadSource);
                 } catch (Throwable e) {
                     synchronized (failed) {
-                        e.printStackTrace();
+                        log.error(e);
                         failed.add(e);
                     }
                 }
             });
             thread.setUncaughtExceptionHandler((t, e) -> {
                 synchronized (failed) {
-                    e.printStackTrace();
+                    log.error(e);
                     failed.add(e);
                 }
             });
@@ -251,7 +251,7 @@ public class SourcePoolTest {
             Assert.assertNull(source);
         }
         
-        final List<Throwable> failed = new ArrayList<Throwable>();
+        final List<Throwable> failed = new ArrayList<>();
         
         final MutableBoolean waitingForCheckOut = new MutableBoolean(true);
         final SortedKeyValueIterator<Key,Value> threadSource = sources.iterator().next();
@@ -266,14 +266,14 @@ public class SourcePoolTest {
                 Assert.assertNotEquals(factory.source, source);
             } catch (Throwable e) {
                 synchronized (failed) {
-                    e.printStackTrace();
+                    log.error(e);
                     failed.add(e);
                 }
             }
         });
         thread.setUncaughtExceptionHandler((t, e) -> {
             synchronized (failed) {
-                e.printStackTrace();
+                log.error(e);
                 failed.add(e);
             }
         });

@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 public class CompositeTestingIngest {
     
-    public static enum WhatKindaRange {
+    public enum WhatKindaRange {
         SHARD, DOCUMENT;
     }
     
@@ -383,7 +383,7 @@ public class CompositeTestingIngest {
         
         public String normalize(String fieldValue) {
             fieldValue = fieldValue.toLowerCase();
-            if (fieldValue.length() > 0) {
+            if (!fieldValue.isEmpty()) {
                 char first = fieldValue.charAt(0);
                 if (vowels.indexOf(first) == -1) {
                     return fieldValue.substring(1) + first + "ay";

@@ -4,7 +4,7 @@
     <parent>
         <groupId>gov.nsa.datawave</groupId>
         <artifactId>assemble-parent</artifactId>
-        <version>2.3.0-SNAPSHOT</version>
+        <version>2.4.0-SNAPSHOT</version>
     </parent>
     <artifactId>assemble-datawave</artifactId>
     <packaging>pom</packaging>
@@ -58,6 +58,11 @@
         <dependency>
             <groupId>gov.nsa.datawave</groupId>
             <artifactId>datawave-ingest-json</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave</groupId>
+            <artifactId>datawave-ingest-nyctlc</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -120,6 +125,12 @@
         <dependency>
             <groupId>org.jgroups</groupId>
             <artifactId>jgroups</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${version.caffeine}</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.hornetq</groupId>
@@ -297,7 +308,7 @@
                                             <artifactId>datawave-ingest-scripts</artifactId>
                                         </artifactItem>
                                     </artifactItems>
-                                    <includes>bin/ingest/ingest-versions.sh,bin/ingest/ingest-env.sh,bin/system/install.sh</includes>
+                                    <includes>bin/ingest/ingest-versions.sh,bin/ingest/ingest-env.sh,bin/ingest/tables-env.sh,bin/system/install.sh</includes>
                                     <outputDirectory>${project.build.directory}/archive-tmp</outputDirectory>
                                 </configuration>
                             </execution>
@@ -564,6 +575,7 @@
                                             <include>${project.groupId}:datawave-common</include>
                                             <include>${project.groupId}:datawave-edge-dictionary-core</include>
                                             <include>${project.groupId}:datawave-ingest-wikipedia</include>
+                                            <include>${project.groupId}:datawave-ingest-nyctlc</include>
                                             <include>gov.nsa.datawave.webservices:datawave-ws-common</include>
                                             <include>gov.nsa.datawave.webservices:datawave-ws-common-util</include>
                                             <include>gov.nsa.datawave.webservices:datawave-ws-client</include>

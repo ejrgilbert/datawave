@@ -177,7 +177,7 @@ public class IngestJob implements Tool {
     private String metricsLabelOverride = null;
     protected boolean generateMapFileRowKeys = false;
     protected String compressionType = null;
-    protected final Set<String> compressionTableBlackList = new HashSet<String>();
+    protected final Set<String> compressionTableBlackList = new HashSet<>();
     protected int maxRFileEntries = 0;
     protected long maxRFileSize = 0;
     @SuppressWarnings("rawtypes")
@@ -319,7 +319,7 @@ public class IngestJob implements Tool {
         // get the qualified work directory path
         Path unqualifiedWorkPath = Path.getPathWithoutSchemeAndAuthority(new Path(workDir));
         conf.set("ingest.work.dir.unqualified", unqualifiedWorkPath.toString());
-        Path workDirPath = getFileSystem(conf, (writeDirectlyToDest ? destHdfs : srcHdfs)).makeQualified(unqualifiedWorkPath);
+        Path workDirPath = new Path(new Path(writeDirectlyToDest ? destHdfs : srcHdfs), unqualifiedWorkPath);
         conf.set("ingest.work.dir.qualified", workDirPath.toString());
         
         // Create the Job
@@ -521,9 +521,7 @@ public class IngestJob implements Tool {
         
         log.info("Replacing ${DATAWAVE_INGEST_HOME} with " + ingestHomeValue);
         
-        Configuration oldConfig = conf;
-        
-        return ConfigurationHelper.interpolate(oldConfig, "\\$\\{DATAWAVE_INGEST_HOME\\}", ingestHomeValue);
+        return ConfigurationHelper.interpolate(conf, "\\$\\{DATAWAVE_INGEST_HOME\\}", ingestHomeValue);
         
     }
     
@@ -1525,7 +1523,7 @@ public class IngestJob implements Tool {
         options.setBlocking(true);
         
         DistCp cp = new DistCp(distcpConfig, options);
-        log.info("Starting distcp from " + srcPath + " to " + destPath + " with configuration: " + options.toString());
+        log.info("Starting distcp from " + srcPath + " to " + destPath + " with configuration: " + options);
         try {
             cp.execute();
         } catch (Exception e) {
@@ -1590,7 +1588,7 @@ public class IngestJob implements Tool {
             if (!fs.exists(statsDir))
                 fs.mkdirs(statsDir);
             Path dst = new Path(statsDir, src.getName());
-            log.info("Copying file " + src.toString() + " to " + dst.toString());
+            log.info("Copying file " + src + " to " + dst);
             fs.copyFromLocalFile(false, true, src, dst);
             // If this worked, then remove the local file
             rawFS.delete(src, false);
@@ -1648,7 +1646,7 @@ public class IngestJob implements Tool {
      */
     @SuppressWarnings("rawtypes")
     public static Iterable<Value> verboseCounters(TaskInputOutputContext context, String location, BulkIngestKey key, Iterable<Value> values) {
-        List<Value> valueList = new ArrayList<Value>();
+        List<Value> valueList = new ArrayList<>();
         for (Value value : values) {
             valueList.add(value);
             verboseCounters(context, location, key, value);

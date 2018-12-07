@@ -142,15 +142,13 @@ public class PushdownFunction implements Function<QueryData,List<ScannerChunk>> 
                     AccumuloSecurityException, TableNotFoundException {
         
         List<Range> ranges = Lists.newArrayList(currentPlan.getRanges());
-        if (ranges.size() > 0) {
+        if (!ranges.isEmpty()) {
             Map<String,Map<KeyExtent,List<Range>>> binnedRanges = binRanges(tl, config.getConnector().getInstance(), ranges);
             
             for (String server : binnedRanges.keySet()) {
                 Map<KeyExtent,List<Range>> hostedExtentMap = binnedRanges.get(server);
                 
-                List<Range> rangeList = Lists.newArrayList();
-                
-                Iterable<Range> rangeIter = rangeList;
+                Iterable<Range> rangeIter = Lists.newArrayList();
                 
                 for (Entry<KeyExtent,List<Range>> rangeEntry : hostedExtentMap.entrySet()) {
                     if (log.isTraceEnabled())
@@ -182,7 +180,7 @@ public class PushdownFunction implements Function<QueryData,List<ScannerChunk>> 
             Credentials creds = new Credentials(config.getConnector().whoami(), authToken);
             List<Range> failures = tl.binRanges(new ClientContext(instance, creds, AccumuloConfiguration.getDefaultConfiguration()), ranges, binnedRanges);
             
-            if (failures.size() > 0) {
+            if (!failures.isEmpty()) {
                 // tried to only do table state checks when failures.size()
                 // == ranges.size(), however this did
                 // not work because nothing ever invalidated entries in the
@@ -215,13 +213,13 @@ public class PushdownFunction implements Function<QueryData,List<ScannerChunk>> 
         // to know what work
         // needs to be redone when failures occurs and tablets have merged
         // or split
-        Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<String,Map<KeyExtent,List<Range>>>();
+        Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<>();
         for (Entry<String,Map<KeyExtent,List<Range>>> entry : binnedRanges.entrySet()) {
-            Map<KeyExtent,List<Range>> tabletMap = new HashMap<KeyExtent,List<Range>>();
+            Map<KeyExtent,List<Range>> tabletMap = new HashMap<>();
             binnedRanges2.put(entry.getKey(), tabletMap);
             for (Entry<KeyExtent,List<Range>> tabletRanges : entry.getValue().entrySet()) {
                 Range tabletRange = tabletRanges.getKey().toDataRange();
-                List<Range> clippedRanges = new ArrayList<Range>();
+                List<Range> clippedRanges = new ArrayList<>();
                 tabletMap.put(tabletRanges.getKey(), clippedRanges);
                 for (Range range : tabletRanges.getValue())
                     clippedRanges.add(tabletRange.clip(range));

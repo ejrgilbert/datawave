@@ -77,7 +77,7 @@ public interface MarkingFunctions {
         
         @Override
         public Map<String,String> combine(Map<String,String>... markings) {
-            return markings.length == 0 ? new HashMap<String,String>() : markings[0];
+            return markings.length == 0 ? new HashMap<>() : markings[0];
         }
         
         @Override
@@ -123,7 +123,7 @@ public interface MarkingFunctions {
         }
     }
     
-    public static class Encoding {
+    class Encoding {
         static private Logger log = LoggerFactory.getLogger(Encoding.class);
         
         /**

@@ -60,7 +60,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public abstract class DatawaveFieldIndexCachingIteratorJexl extends WrappingIterator implements CompositePredicateFilterer {
     
-    public static abstract class Builder<B extends Builder<B>> {
+    public abstract static class Builder<B extends Builder<B>> {
         private Text fieldName;
         protected Text fieldValue;
         private Predicate<Key> datatypeFilter;
@@ -195,7 +195,7 @@ public abstract class DatawaveFieldIndexCachingIteratorJexl extends WrappingIter
     protected static final Collection<ByteSequence> EMPTY_CFS = Collections.EMPTY_LIST;
     
     // These are the ranges to scan in the field index
-    private final List<Range> boundingFiRanges = new ArrayList<Range>();
+    private final List<Range> boundingFiRanges = new ArrayList<>();
     private Text fiRow = null;
     
     // This is the fieldname of interest
@@ -331,7 +331,7 @@ public abstract class DatawaveFieldIndexCachingIteratorJexl extends WrappingIter
             this.fiName = fieldName;
         } else {
             this.fieldName = fieldName;
-            this.fiName = new Text("fi" + NULL_BYTE + fieldName.toString());
+            this.fiName = new Text("fi" + NULL_BYTE + fieldName);
         }
         log.trace("fName : " + fiName.toString().replaceAll(NULL_BYTE, "%00"));
         this.fieldValue = fieldValue;
@@ -731,7 +731,7 @@ public abstract class DatawaveFieldIndexCachingIteratorJexl extends WrappingIter
         setupRowBasedHdfsBackedSet(sourceRow);
         
         // for each range, fork off a runnable
-        List<Future<?>> futures = new ArrayList<Future<?>>(boundingFiRanges.size());
+        List<Future<?>> futures = new ArrayList<>(boundingFiRanges.size());
         if (log.isDebugEnabled()) {
             log.debug("Processing " + boundingFiRanges + " for " + this);
         }
@@ -740,8 +740,7 @@ public abstract class DatawaveFieldIndexCachingIteratorJexl extends WrappingIter
             if (log.isTraceEnabled()) {
                 log.trace("range -> " + range);
             }
-            final Range boundingFiRange = range;
-            futures.add(fillSet(boundingFiRange));
+            futures.add(fillSet(range));
         }
         
         boolean failed = false;
@@ -791,7 +790,7 @@ public abstract class DatawaveFieldIndexCachingIteratorJexl extends WrappingIter
         
         // create a set if needed (does not actually need to be thread safe as we are only using one thread in this case)
         if (this.threadSafeSet == null) {
-            this.threadSafeSet = new TreeSet<KeyValueSerializable>();
+            this.threadSafeSet = new TreeSet<>();
         } else {
             this.threadSafeSet.clear();
         }
@@ -970,7 +969,7 @@ public abstract class DatawaveFieldIndexCachingIteratorJexl extends WrappingIter
             }
         };
         
-        return IteratorThreadPoolManager.executeIvarator(runnable, DatawaveFieldIndexCachingIteratorJexl.this.toString() + " in " + boundingFiRange.toString());
+        return IteratorThreadPoolManager.executeIvarator(runnable, DatawaveFieldIndexCachingIteratorJexl.this + " in " + boundingFiRange);
         
     }
     
@@ -1034,7 +1033,7 @@ public abstract class DatawaveFieldIndexCachingIteratorJexl extends WrappingIter
                 this.createdRowDir = false;
             }
             
-            this.set = new HdfsBackedSortedSet<KeyValueSerializable>(null, hdfsBackedSetBufferSize, fs, rowDir, maxOpenFiles);
+            this.set = new HdfsBackedSortedSet<>(null, hdfsBackedSetBufferSize, fs, rowDir, maxOpenFiles);
             this.threadSafeSet = Collections.synchronizedSortedSet(this.set);
             this.currentRow = row;
             this.setControl.takeOwnership(row, this);
@@ -1183,8 +1182,6 @@ public abstract class DatawaveFieldIndexCachingIteratorJexl extends WrappingIter
         private volatile boolean cancelled = false;
         
         private final int bufferSize = 128;
-        
-        public HdfsBackedControl() {}
         
         protected Path getOwnershipFile(String row) {
             return new Path(getRowDir(row), OWNERSHIP_FILE);

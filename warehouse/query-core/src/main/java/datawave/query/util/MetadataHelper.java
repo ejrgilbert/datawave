@@ -1,9 +1,8 @@
 package datawave.query.util;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.cache.Cache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -21,7 +20,7 @@ import datawave.iterators.filter.EdgeMetadataCQStrippingIterator;
 import datawave.marking.MarkingFunctions;
 import datawave.query.composite.CompositeMetadata;
 import datawave.query.composite.CompositeMetadataHelper;
-import datawave.query.iterator.PowerSet;
+import datawave.util.UniversalSet;
 import datawave.query.model.QueryModel;
 import datawave.security.util.AuthorizationsUtil;
 import datawave.security.util.ScannerHelper;
@@ -477,9 +476,18 @@ public class MetadataHelper implements ApplicationContextAware {
         Set<String> fields = new HashSet<>();
         fields.addAll(getIndexOnlyFields(ingestTypeFilter));
         fields.addAll(getTermFrequencyFields(ingestTypeFilter));
-        for (String compField : getFieldToCompositeMap(ingestTypeFilter).keySet())
-            if (!CompositeIngest.isOverloadedCompositeField(getCompositeToFieldMap(ingestTypeFilter), compField))
-                fields.add(compField);
+        Multimap<String,String> compToFieldMap = getCompositeToFieldMap(ingestTypeFilter);
+        for (String compField : compToFieldMap.keySet()) {
+            if (!CompositeIngest.isOverloadedCompositeField(compToFieldMap, compField)) {
+                // a composite is only a non-event field if it is composed from 1 or more non-event fields
+                for (String componentField : compToFieldMap.get(compField)) {
+                    if (fields.contains(componentField)) {
+                        fields.add(compField);
+                        break;
+                    }
+                }
+            }
+        }
         
         return Collections.unmodifiableSet(fields);
     }
@@ -534,8 +542,8 @@ public class MetadataHelper implements ApplicationContextAware {
         
         Set<String> unevalFields = null;
         if (log.isTraceEnabled())
-            log.trace("using connector: " + connector.getClass().getCanonicalName() + " with auths: " + auths.toString() + " and model table name: "
-                            + modelTableName + " looking at model " + modelName + " unevaluatedFields " + unevaluatedFields);
+            log.trace("using connector: " + connector.getClass().getCanonicalName() + " with auths: " + auths + " and model table name: " + modelTableName
+                            + " looking at model " + modelName + " unevaluatedFields " + unevaluatedFields);
         
         Scanner scan = ScannerHelper.createScanner(connector, modelTableName, auths);
         scan.setRange(new Range());
@@ -578,9 +586,9 @@ public class MetadataHelper implements ApplicationContextAware {
         unevalFields.addAll(indexOnlyFields);
         queryModel.setUnevaluatedFields(unevalFields);
         
-        if (queryModel.getReverseQueryMapping().size() == 0) {
+        if (queryModel.getReverseQueryMapping().isEmpty()) {
             if (log.isTraceEnabled()) {
-                log.trace("empty query model for " + this.toString());
+                log.trace("empty query model for " + this);
             }
             if ("DatawaveMetadata".equals(modelTableName)) {
                 log.error("Query Model should not be empty...");
@@ -607,13 +615,12 @@ public class MetadataHelper implements ApplicationContextAware {
         TraceStopwatch stopWatch = timers.newStartedStopwatch("MetadataHelper -- Getting query model names");
         
         if (log.isTraceEnabled())
-            log.trace("using connector: " + connector.getClass().getCanonicalName() + " with auths: " + auths.toString() + " and model table name: "
-                            + modelTableName);
+            log.trace("using connector: " + connector.getClass().getCanonicalName() + " with auths: " + auths + " and model table name: " + modelTableName);
         
         Scanner scan = ScannerHelper.createScanner(connector, modelTableName, auths);
         scan.setRange(new Range());
-        Set<String> modelNames = new HashSet<String>();
-        Set<Text> ignoreColfs = new HashSet<Text>();
+        Set<String> modelNames = new HashSet<>();
+        Set<Text> ignoreColfs = new HashSet<>();
         ignoreColfs.addAll(metadataIndexColfs);
         ignoreColfs.addAll(metadataNormalizedColfs);
         ignoreColfs.addAll(metadataTypeColfs);
@@ -872,11 +879,11 @@ public class MetadataHelper implements ApplicationContextAware {
      * @return An unmodifiable Multimap
      * @throws TableNotFoundException
      */
-    public Multimap<String,String> getFieldToCompositeMap() throws TableNotFoundException {
+    public Multimap<String,String> getCompositeToFieldMap() throws TableNotFoundException {
         return this.allFieldMetadataHelper.getCompositeToFieldMap();
     }
     
-    public Multimap<String,String> getFieldToCompositeMap(Set<String> ingestTypeFilter) throws TableNotFoundException {
+    public Multimap<String,String> getCompositeToFieldMap(Set<String> ingestTypeFilter) throws TableNotFoundException {
         
         return this.allFieldMetadataHelper.getCompositeToFieldMap(ingestTypeFilter);
     }
@@ -1056,20 +1063,6 @@ public class MetadataHelper implements ApplicationContextAware {
     }
     
     /**
-     * returns a map of compositeFieldName to an ordered list of the field names it uses. If called multiple time, it returns the same cached map.
-     * 
-     * @return
-     * @throws TableNotFoundException
-     */
-    public Multimap<String,String> getCompositeToFieldMap() throws TableNotFoundException {
-        return this.getCompositeToFieldMap(null);
-    }
-    
-    public Multimap<String,String> getCompositeToFieldMap(Set<String> ingestTypeFilter) throws TableNotFoundException {
-        return this.allFieldMetadataHelper.getCompositeToFieldMap(ingestTypeFilter);
-    }
-    
-    /**
      * Fetch the Set of all fields marked as containing term frequency information, {@link ColumnFamilyConstants#COLF_TF}.
      *
      * @return
@@ -1146,7 +1139,7 @@ public class MetadataHelper implements ApplicationContextAware {
         
         Multimap<String,String> expansionFields = this.allFieldMetadataHelper.loadExpansionFields();
         
-        Set<String> fields = new HashSet<String>();
+        Set<String> fields = new HashSet<>();
         if (ingestTypeFilter == null || ingestTypeFilter.isEmpty()) {
             fields.addAll(expansionFields.values());
         } else {
@@ -1168,7 +1161,7 @@ public class MetadataHelper implements ApplicationContextAware {
         
         Multimap<String,String> contentFields = this.allFieldMetadataHelper.loadContentFields();
         
-        Set<String> fields = new HashSet<String>();
+        Set<String> fields = new HashSet<>();
         if (ingestTypeFilter == null || ingestTypeFilter.isEmpty()) {
             fields.addAll(contentFields.values());
         } else {
@@ -1272,7 +1265,7 @@ public class MetadataHelper implements ApplicationContextAware {
     }
     
     public Long getCountsByFieldForDays(String fieldName, Date begin, Date end) {
-        return getCountsByFieldForDays(fieldName, begin, end, PowerSet.<String> instance());
+        return getCountsByFieldForDays(fieldName, begin, end, UniversalSet.instance());
     }
     
     public Long getCountsByFieldForDays(String fieldName, Date begin, Date end, Set<String> ingestTypeFilter) {
@@ -1316,7 +1309,7 @@ public class MetadataHelper implements ApplicationContextAware {
      * @return
      */
     public Long getCountsByFieldInDay(String fieldName, String date) {
-        return getCountsByFieldInDayWithTypes(fieldName, date, PowerSet.<String> instance());
+        return getCountsByFieldInDayWithTypes(fieldName, date, UniversalSet.instance());
     }
     
     /**
@@ -1556,8 +1549,6 @@ public class MetadataHelper implements ApplicationContextAware {
         
         static final String PROPS_RESOURCE = "metadata.properties";
         static final Properties defaultProps = new Properties();
-        
-        private MetadataDefaultsFactory() {}
         
         static {
             InputStream in = null;

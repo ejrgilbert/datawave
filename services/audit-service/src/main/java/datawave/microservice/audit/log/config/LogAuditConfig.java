@@ -1,5 +1,6 @@
 package datawave.microservice.audit.log.config;
 
+import datawave.microservice.audit.common.AuditMessage;
 import datawave.microservice.audit.common.AuditMessageHandler;
 import datawave.microservice.audit.log.LogAuditor;
 import datawave.webservice.common.audit.AuditParameters;
@@ -13,8 +14,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.SubscribableChannel;
 
 import javax.annotation.Resource;
-import java.util.Map;
 
+/**
+ * Configures the LogAuditor to process messages received by the audit service. This configuration is activated via the 'audit.log.enabled' property. When
+ * enabled, this configuration will also enable the appropriate Spring Cloud Stream configuration for the log audit binding, as specified in the audit config.
+ */
 @Configuration
 @EnableBinding(LogAuditConfig.LogAuditBinding.class)
 @ConditionalOnProperty(name = "audit.log.enabled", havingValue = "true")
@@ -28,7 +32,7 @@ public class LogAuditConfig {
         return new AuditMessageHandler(msgHandlerAuditParams, logAuditor) {
             @Override
             @StreamListener(LogAuditBinding.NAME)
-            public void onMessage(Map<String,String> msg) throws Exception {
+            public void onMessage(AuditMessage msg) throws Exception {
                 super.onMessage(msg);
             }
         };

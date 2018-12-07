@@ -2318,16 +2318,15 @@ public class ExtendedQueryExecutorBeanTest {
         // Set expectations
         RoleManager roleManager = new EasyRoleManager();
         expect(this.queryLogicFactory.getQueryLogicList()).andReturn(Arrays.asList(this.queryLogic1, this.queryLogic2));
-        expect(this.queryLogic1.getLogicName()).andReturn("logic1").anyTimes(); // Begin 1st loop
+        expect(this.queryLogic1.getLogicName()).andReturn("logic1").times(1); // Begin 1st loop
         expect(this.queryLogic1.getAuditType(null)).andReturn(AuditType.LOCALONLY);
         expect(this.queryLogic1.getLogicDescription()).andReturn("description1");
         expect(this.queryLogic1.getOptionalQueryParameters()).andReturn(new TreeSet<>());
         expect(this.queryLogic1.getRequiredQueryParameters()).andReturn(new TreeSet<>());
         expect(this.queryLogic1.getExampleQueries()).andReturn(new TreeSet<>());
         expect(this.queryLogic1.getRoleManager()).andReturn(roleManager).anyTimes();
-        expect(this.queryLogic1.getTransformer(isA(Query.class))).andReturn(this.transformer);
-        expect(this.transformer.createResponse(isA(ResultsPage.class))).andThrow(ILLEGAL_STATE_EXCEPTION);
-        expect(this.queryLogic2.getLogicName()).andReturn("logic2").times(2); // Begin 1st loop
+        expect(this.queryLogic1.getResponseClass(EasyMock.anyObject(Query.class))).andThrow(ILLEGAL_STATE_EXCEPTION);
+        expect(this.queryLogic2.getLogicName()).andReturn("logic2").times(1); // Begin 1st loop
         expect(this.queryLogic2.getAuditType(null)).andReturn(AuditType.LOCALONLY);
         expect(this.queryLogic2.getLogicDescription()).andReturn("description2");
         expect(this.queryLogic2.getOptionalQueryParameters()).andReturn(new TreeSet<>());
@@ -2335,8 +2334,7 @@ public class ExtendedQueryExecutorBeanTest {
         expect(this.queryLogic2.getExampleQueries()).andReturn(new TreeSet<>());
         RoleManager roleManager2 = new DatawaveRoleManager(Arrays.asList("ROLE_1", "ROLE_2"));
         expect(this.queryLogic2.getRoleManager()).andReturn(roleManager2).times(2);
-        expect(this.queryLogic2.getTransformer(isA(Query.class))).andReturn(this.transformer);
-        expect(this.transformer.createResponse(isA(ResultsPage.class))).andReturn(this.baseResponse);
+        expect(this.queryLogic2.getResponseClass(EasyMock.anyObject(Query.class))).andReturn(this.baseResponse.getClass().getCanonicalName());
         Map<String,String> parsers = new HashMap<>();
         parsers.put("PARSER1", null);
         expect(this.queryLogic2.getQuerySyntaxParsers()).andReturn((Map) parsers);
@@ -3139,7 +3137,7 @@ public class ExtendedQueryExecutorBeanTest {
         BaseQueryResponse response = PowerMock.createMock(BaseQueryResponse.class);
         ManagedExecutorService executor = PowerMock.createMock(ManagedExecutorService.class);
         
-        expect(uriInfo.getQueryParameters()).andReturn(new MultivaluedHashMap<String,String>());
+        expect(uriInfo.getQueryParameters()).andReturn(new MultivaluedHashMap<>());
         expect(lookupUUIDUtil.getUUIDType("uuidType")).andReturn(uuidType);
         expect(uuidType.getDefinedView()).andReturn("abc");
         expect(lookupUUIDUtil.createUUIDQueryAndNext(isA(GetUUIDCriteria.class))).andReturn(response);
@@ -3172,7 +3170,7 @@ public class ExtendedQueryExecutorBeanTest {
         BaseQueryResponse response = PowerMock.createMock(BaseQueryResponse.class);
         ManagedExecutorService executor = PowerMock.createMock(ManagedExecutorService.class);
         
-        expect(uriInfo.getQueryParameters()).andReturn(new MultivaluedHashMap<String,String>());
+        expect(uriInfo.getQueryParameters()).andReturn(new MultivaluedHashMap<>());
         expect(lookupUUIDUtil.getUUIDType("uuidType")).andReturn(uuidType);
         expect(uuidType.getDefinedView()).andReturn("abc");
         expect(lookupUUIDUtil.createUUIDQueryAndNext(isA(GetUUIDCriteria.class))).andReturn(response);
@@ -3243,7 +3241,7 @@ public class ExtendedQueryExecutorBeanTest {
         expect(principal.getShortName()).andReturn(userSid);
         expect(principal.getUserDN()).andReturn(userDNpair);
         expect(principal.getDNs()).andReturn(new String[] {userDN});
-        expect(this.principal.getProxyServers()).andReturn(new HashSet<String>(0)).anyTimes();
+        expect(this.principal.getProxyServers()).andReturn(new HashSet<>(0)).anyTimes();
         expect(this.queryLogic1.getAuditType(null)).andReturn(AuditType.ACTIVE);
         expect(this.principal.getAuthorizations()).andReturn((Collection) Arrays.asList(Arrays.asList(queryAuthorizations)));
         expect(this.queryLogic1.getMaxPageSize()).andReturn(10).anyTimes();
@@ -3335,7 +3333,7 @@ public class ExtendedQueryExecutorBeanTest {
         expect(this.query.toMap()).andReturn(map);
         expect(this.query.getColumnVisibility()).andReturn(authorization);
         this.query.populateMetric(anyObject(QueryMetric.class));
-        expect(this.queryLogic1.getSelectors(this.query)).andReturn(new ArrayList<String>());
+        expect(this.queryLogic1.getSelectors(this.query)).andReturn(new ArrayList<>());
         expect(this.auditor.audit(map)).andReturn(null);
         expectLastCall().andThrow(new Exception("EXPECTED EXCEPTION IN AUDIT"));
         cache.unlock(queryName);

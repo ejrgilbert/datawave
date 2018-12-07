@@ -181,10 +181,10 @@ public abstract class UseOccurrenceToCountInJexlContextTest {
         GenericQueryConfiguration config = logic.initialize(connector, settings, authSet);
         logic.setupQuery(config);
         
-        HashSet<String> expectedSet = new HashSet<String>(expected);
+        HashSet<String> expectedSet = new HashSet<>(expected);
         HashSet<String> resultSet;
-        resultSet = new HashSet<String>();
-        Set<Document> docs = new HashSet<Document>();
+        resultSet = new HashSet<>();
+        Set<Document> docs = new HashSet<>();
         for (Entry<Key,Value> entry : logic) {
             
             Document d = deserializer.apply(entry).getValue();
@@ -224,9 +224,8 @@ public abstract class UseOccurrenceToCountInJexlContextTest {
                     }
                 }
             } else if (hitTermAttribute instanceof Attribute) {
-                Attribute<?> hitTerm = (Attribute<?>) hitTermAttribute;
-                log.debug("hitTerm:" + hitTerm);
-                String hitString = hitTerm.getData().toString();
+                log.debug("hitTerm:" + (Attribute<?>) hitTermAttribute);
+                String hitString = ((Attribute<?>) hitTermAttribute).getData().toString();
                 log.debug("as string:" + hitString);
                 log.debug("expectedHitTerms:" + expectedHitTerms);
                 boolean result = expectedHitTerms.get(uuid).remove(hitString);
@@ -234,7 +233,8 @@ public abstract class UseOccurrenceToCountInJexlContextTest {
                     log.debug("failed to find hitString:" + hitString + " for uuid:" + uuid + " in expectedHitTerms:" + expectedHitTerms);
                     Assert.fail("failed to find hitString:" + hitString + " for uuid:" + uuid + " in expectedHitTerms:" + expectedHitTerms);
                 } else {
-                    log.debug("removed hitString:" + hitString + " for uuid:" + uuid + " in expectedHitTerms:" + expectedHitTerms + " from hitTerm:" + hitTerm);
+                    log.debug("removed hitString:" + hitString + " for uuid:" + uuid + " in expectedHitTerms:" + expectedHitTerms + " from hitTerm:"
+                                    + (Attribute<?>) hitTermAttribute);
                 }
             }
             

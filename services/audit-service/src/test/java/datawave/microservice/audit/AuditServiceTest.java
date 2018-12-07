@@ -1,7 +1,9 @@
 package datawave.microservice.audit;
 
 //import datawave.common.test.integration.IntegrationTest;
+import datawave.microservice.audit.common.AuditMessage;
 import datawave.microservice.audit.config.AuditServiceConfig;
+import datawave.microservice.audit.health.HealthChecker;
 import datawave.microservice.authorization.jwt.JWTRestTemplate;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.security.authorization.DatawaveUser;
@@ -12,15 +14,20 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.cloud.stream.test.binder.MessageCollector;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.Message;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -29,6 +36,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -40,6 +48,7 @@ import static org.junit.Assert.assertTrue;
 //@Category(IntegrationTest.class)
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ContextConfiguration(classes = AuditServiceTest.AuditServiceTestConfiguration.class)
 @ActiveProfiles({"AuditServiceTest"})
 public class AuditServiceTest {
     @LocalServerPort
@@ -62,8 +71,11 @@ public class AuditServiceTest {
     private String authorizations = "AUTH1,AUTH2";
     private AuditType auditType = AuditType.ACTIVE;
     
+    private static Boolean isHealthy = Boolean.TRUE;
+    
     @Before
     public void setup() {
+        isHealthy = true;
         jwtRestTemplate = restTemplateBuilder.build(JWTRestTemplate.class);
         DN = SubjectIssuerDNPair.of(userDN, "issuerDn");
     }
@@ -151,7 +163,10 @@ public class AuditServiceTest {
         ResponseEntity<String> response = jwtRestTemplate.exchange(authUser, HttpMethod.POST, uri, String.class);
         assertEquals(response.getStatusCode().value(), HttpStatus.OK.value());
         
-        Map<String,Object> received = ((Message<Map<String,Object>>) messageCollector.forChannel(auditSourceBinding.auditSource()).poll()).getPayload();
+        @SuppressWarnings("unchecked")
+        Message<AuditMessage> msg = (Message<AuditMessage>) messageCollector.forChannel(auditSourceBinding.auditSource()).poll();
+        assertNotNull(msg);
+        Map<String,String> received = msg.getPayload().getAuditParameters();
         Map<String,String> expected = uri.getQueryParams().toSingleValueMap();
         
         for (String param : expected.keySet()) {
@@ -162,6 +177,21 @@ public class AuditServiceTest {
         assertNotNull(received.remove(AuditParameters.QUERY_DATE));
         assertNotNull(received.remove(AuditParameters.AUDIT_ID));
         assertEquals(0, received.size());
+    }
+    
+    @Test(expected = HttpServerErrorException.class)
+    public void testUnhealthy() {
+        isHealthy = false;
+        Collection<String> roles = Collections.singleton("AuthorizedUser");
+        DatawaveUser uathDWUser = new DatawaveUser(DN, USER, null, roles, null, System.currentTimeMillis());
+        ProxiedUserDetails authUser = new ProxiedUserDetails(Collections.singleton(uathDWUser), uathDWUser.getCreationTime());
+        
+        UriComponents uri = UriComponentsBuilder.newInstance().scheme("https").host("localhost").port(webServicePort).path("/audit/v1/audit")
+                        .queryParam(AuditParameters.USER_DN, userDN).queryParam(AuditParameters.QUERY_STRING, query)
+                        .queryParam(AuditParameters.QUERY_AUTHORIZATIONS, authorizations).queryParam(AuditParameters.QUERY_AUDIT_TYPE, auditType)
+                        .queryParam(AuditParameters.QUERY_SECURITY_MARKING_COLVIZ, "ALL").build();
+        
+        jwtRestTemplate.exchange(authUser, HttpMethod.POST, uri, String.class);
     }
     
     @Test
@@ -179,7 +209,10 @@ public class AuditServiceTest {
         ResponseEntity<String> response = jwtRestTemplate.exchange(authUser, HttpMethod.POST, uri, String.class);
         assertEquals(response.getStatusCode().value(), HttpStatus.OK.value());
         
-        Map<String,Object> received = ((Message<Map<String,Object>>) messageCollector.forChannel(auditSourceBinding.auditSource()).poll()).getPayload();
+        @SuppressWarnings("unchecked")
+        Message<AuditMessage> msg = (Message<AuditMessage>) messageCollector.forChannel(auditSourceBinding.auditSource()).poll();
+        assertNotNull(msg);
+        Map<String,String> received = msg.getPayload().getAuditParameters();
         Map<String,String> expected = uri.getQueryParams().toSingleValueMap();
         
         for (String param : expected.keySet()) {
@@ -189,5 +222,43 @@ public class AuditServiceTest {
         
         assertNotNull(received.remove(AuditParameters.QUERY_DATE));
         assertEquals(0, received.size());
+    }
+    
+    @Configuration
+    @Profile("AuditServiceTest")
+    @ComponentScan(basePackages = "datawave.microservice")
+    public static class AuditServiceTestConfiguration {
+        @Bean
+        public HealthChecker healthChecker() {
+            return new TestHealthChecker();
+        }
+    }
+    
+    private static class TestHealthChecker implements HealthChecker {
+        
+        @Override
+        public long pollIntervalMillis() {
+            return 0;
+        }
+        
+        @Override
+        public void recover() {
+            // do nothing
+        }
+        
+        @Override
+        public void runHealthCheck() {
+            // do nothing
+        }
+        
+        @Override
+        public boolean isHealthy() {
+            return isHealthy;
+        }
+        
+        @Override
+        public List<Map<String,Object>> getOutageStats() {
+            return null;
+        }
     }
 }

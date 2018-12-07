@@ -87,7 +87,7 @@ public class RfileScanner extends SessionOptions implements BatchScanner, Closea
     
     @Override
     public void setRanges(Collection<Range> ranges) {
-        if (ranges == null || ranges.size() == 0) {
+        if (ranges == null || ranges.isEmpty()) {
             throw new IllegalArgumentException("ranges must be non null and contain at least 1 range");
         }
         
@@ -105,7 +105,7 @@ public class RfileScanner extends SessionOptions implements BatchScanner, Closea
     }
     
     public void seek(Range range) throws IOException {
-        seek(range, Collections.<ByteSequence> emptyList(), false);
+        seek(range, Collections.emptyList(), false);
     }
     
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {

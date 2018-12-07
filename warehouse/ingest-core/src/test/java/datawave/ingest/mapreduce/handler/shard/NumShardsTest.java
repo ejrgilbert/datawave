@@ -19,7 +19,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
@@ -210,7 +209,7 @@ public class NumShardsTest {
         
         // invalid entry and should be ignored
         m = new Mutation(NumShards.NUM_SHARDS);
-        m.put(NumShards.NUM_SHARDS_CF.toString() + "blah", "20171102_19", "");
+        m.put(NumShards.NUM_SHARDS_CF + "blah", "20171102_19", "");
         
         recordWriter.addMutation(m);
         
@@ -233,7 +232,7 @@ public class NumShardsTest {
         
         // these should create numshards.txt file based on multiple numshards entries in mock accumulo
         numShards.setaHelper(mockedAccumuloHelper);
-        numShards.updateCache(FileSystem.get(conf));
+        numShards.updateCache();
         
         assertEquals(11, numShards.getNumShards(0));
         
@@ -273,7 +272,7 @@ public class NumShardsTest {
         
         // write a couiple of entries for multiple numshards
         Mutation m = new Mutation(NumShards.NUM_SHARDS);
-        m.put(NumShards.NUM_SHARDS_CF.toString() + "blah", "20171102_19", "");
+        m.put(NumShards.NUM_SHARDS_CF + "blah", "20171102_19", "");
         
         recordWriter.addMutation(m);
         
@@ -296,7 +295,7 @@ public class NumShardsTest {
         
         // these should create numshards.txt file based on multiple numshards entries in mock accumulo
         numShards.setaHelper(mockedAccumuloHelper);
-        numShards.updateCache(FileSystem.get(conf));
+        numShards.updateCache();
         
         assertEquals(11, numShards.getNumShards(0));
         assertEquals(11, numShards.getNumShards(Long.MAX_VALUE));

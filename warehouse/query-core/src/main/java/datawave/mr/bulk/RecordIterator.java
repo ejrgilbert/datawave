@@ -133,7 +133,7 @@ public class RecordIterator extends RangeSplit implements SortedKeyValueIterator
         
         public Thread newThread(Runnable r) {
             Thread thread = dtf.newThread(r);
-            thread.setName("Datawave BatchScanner Session " + threadIdentifier.toString() + " -" + threadNum++);
+            thread.setName("Datawave BatchScanner Session " + threadIdentifier + " -" + threadNum++);
             thread.setDaemon(true);
             return thread;
         }
@@ -356,7 +356,7 @@ public class RecordIterator extends RangeSplit implements SortedKeyValueIterator
         }
         
         if (initRanges) {
-            rangeQueue = new LinkedList<Range>();
+            rangeQueue = new LinkedList<>();
             rangeQueue.addAll(ranges);
         }
         
@@ -385,7 +385,7 @@ public class RecordIterator extends RangeSplit implements SortedKeyValueIterator
             ColumnVisibility cv = new ColumnVisibility(acuTableConf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
             defaultSecurityLabel = cv.getExpression();
             
-            VisibilityFilter visFilter = new VisibilityFilter(topIter, auths, defaultSecurityLabel);
+            SortedKeyValueIterator<Key,Value> visFilter = VisibilityFilter.wrap(topIter, auths, defaultSecurityLabel);
             
             return IteratorUtil.loadIterators(IteratorScope.scan, visFilter, null, acuTableConf, serverSideIteratorList, serverSideIteratorOptions, iterEnv,
                             false);
@@ -409,7 +409,7 @@ public class RecordIterator extends RangeSplit implements SortedKeyValueIterator
         List<AccumuloIterator> iterators = BulkInputFormat.getIterators(conf);
         List<AccumuloIteratorOption> options = BulkInputFormat.getIteratorOptions(conf);
         
-        Map<String,IteratorSetting> scanIterators = new HashMap<String,IteratorSetting>();
+        Map<String,IteratorSetting> scanIterators = new HashMap<>();
         for (AccumuloIterator iterator : iterators) {
             scanIterators.put(iterator.getIteratorName(), new IteratorSetting(iterator.getPriority(), iterator.getIteratorName(), iterator.getIteratorClass()));
         }
@@ -479,7 +479,7 @@ public class RecordIterator extends RangeSplit implements SortedKeyValueIterator
                 
                 long length = fs.getFileStatus(path).getLen();
                 
-                closeable.setBlockFile(new Reader(closeable.getInputStream(), length, conf, null, null, acuTableConf));
+                closeable.setBlockFile(new Reader(path.getName(), closeable.getInputStream(), length, conf, null, null, acuTableConf));
                 
                 fileIterator = new RFile.Reader(closeable.getReader());
                 
@@ -662,14 +662,13 @@ public class RecordIterator extends RangeSplit implements SortedKeyValueIterator
         
         try {
             if (lastSeenKey != null) {
-                Range newRange = new Range(lastSeenKey, false, currentRange.getEndKey(), currentRange.isEndKeyInclusive());
-                currentRange = newRange;
+                currentRange = new Range(lastSeenKey, false, currentRange.getEndKey(), currentRange.isEndKeyInclusive());
             }
         } catch (Exception e) {
             log.error(e);
         }
         
-        globalIter.seek(currentRange, Collections.<ByteSequence> emptyList(), false);
+        globalIter.seek(currentRange, Collections.emptyList(), false);
     }
     
     /**
@@ -704,7 +703,7 @@ public class RecordIterator extends RangeSplit implements SortedKeyValueIterator
                 // us back into the previous range.
                 lastSeenKey = null;
                 
-                globalIter.seek(currentRange, Collections.<ByteSequence> emptyList(), false);
+                globalIter.seek(currentRange, Collections.emptyList(), false);
             }
             
         }

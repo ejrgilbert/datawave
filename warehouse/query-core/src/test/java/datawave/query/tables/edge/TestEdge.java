@@ -53,10 +53,6 @@ public class TestEdge {
     
     protected AbstractNormalizer<String> normalizer;
     
-    public TestEdge() {
-        
-    }
-    
     public static TestEdge createEdge(String source, String sink, String dateStr, String dataType, String fromRel, String toRel, String fromSource,
                     String toSource, String visibility, long timestamp) {
         return createEdge(source, sink, dateStr, dataType, fromRel, toRel, fromSource, toSource, visibility, timestamp, null);
@@ -176,7 +172,7 @@ public class TestEdge {
     }
     
     public List<Mutation> getMutations(boolean protobufEdgeFormat) {
-        ArrayList<Mutation> retVal = new ArrayList<Mutation>();
+        ArrayList<Mutation> retVal = new ArrayList<>();
         
         if (statsEdge) {
             Mutation mut = new Mutation(formatRow(getSource()));

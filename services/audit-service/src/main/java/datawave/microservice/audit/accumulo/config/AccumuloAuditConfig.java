@@ -2,6 +2,7 @@ package datawave.microservice.audit.accumulo.config;
 
 import datawave.microservice.audit.accumulo.AccumuloAuditor;
 import datawave.microservice.audit.accumulo.config.AccumuloAuditProperties.Accumulo;
+import datawave.microservice.audit.common.AuditMessage;
 import datawave.microservice.audit.common.AuditMessageHandler;
 import datawave.webservice.common.audit.AuditParameters;
 import datawave.webservice.common.audit.Auditor;
@@ -26,8 +27,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.SubscribableChannel;
 
 import javax.annotation.Resource;
-import java.util.Map;
 
+/**
+ * Configures the AccumuloAuditor to process messages received by the audit service. This configuration is activated via the 'audit.accumulo.enabled' property.
+ * When enabled, this configuration will also enable the appropriate Spring Cloud Stream configuration for the accumulo audit binding, as specified in the audit
+ * config.
+ */
 @Configuration
 @EnableConfigurationProperties(AccumuloAuditProperties.class)
 @EnableBinding(AccumuloAuditConfig.AccumuloAuditBinding.class)
@@ -44,7 +49,7 @@ public class AccumuloAuditConfig {
         return new AuditMessageHandler(msgHandlerAuditParams, accumuloAuditor) {
             @Override
             @StreamListener(AccumuloAuditBinding.NAME)
-            public void onMessage(Map<String,String> msg) throws Exception {
+            public void onMessage(AuditMessage msg) throws Exception {
                 super.onMessage(msg);
             }
         };

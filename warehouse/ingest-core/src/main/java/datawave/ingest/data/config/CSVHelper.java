@@ -2,7 +2,11 @@ package datawave.ingest.data.config;
 
 import org.apache.hadoop.conf.Configuration;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Helper for CSV data
@@ -117,7 +121,7 @@ public class CSVHelper extends DataTypeHelperImpl {
     /** Pattern used to prevent matching escaped multivalue field separators when splitting multivalued fields */
     public static final String BACKSLASH_ESCAPE_LOOKBEHIND_PATTERN = "(?<!\\\\)";
     
-    public static enum ThresholdAction {
+    public enum ThresholdAction {
         FAIL, DROP, REPLACE, TRUNCATE
     }
     

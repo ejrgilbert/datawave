@@ -14,7 +14,7 @@ import datawave.query.attributes.ValueTuple;
 import datawave.query.composite.CompositeMetadata;
 import datawave.query.exceptions.DatawaveFatalQueryException;
 import datawave.query.iterator.NestedIterator;
-import datawave.query.iterator.PowerSet;
+import datawave.util.UniversalSet;
 import datawave.query.iterator.SourceFactory;
 import datawave.query.iterator.SourceManager;
 import datawave.query.iterator.builder.AbstractIteratorBuilder;
@@ -115,7 +115,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
     protected SourceManager source;
     protected SortedKeyValueIterator<Key,Value> limitedSource = null;
     protected Map<Entry<String,String>,Entry<Key,Value>> limitedMap = null;
-    protected Collection<String> includeReferences = PowerSet.instance();
+    protected Collection<String> includeReferences = UniversalSet.instance();
     protected Collection<String> excludeReferences = Collections.emptyList();
     protected Predicate<Key> datatypeFilter = Predicates.<Key> alwaysTrue();
     protected TimeFilter timeFilter;
@@ -138,10 +138,10 @@ public class IteratorBuildingVisitor extends BaseVisitor {
     
     protected TypeMetadata typeMetadata;
     protected EventDataQueryFilter attrFilter;
-    protected Set<String> fieldsToAggregate = Collections.<String> emptySet();
-    protected Set<String> termFrequencyFields = Collections.<String> emptySet();
+    protected Set<String> fieldsToAggregate = Collections.emptySet();
+    protected Set<String> termFrequencyFields = Collections.emptySet();
     protected boolean allowTermFrequencyLookup = true;
-    protected Set<String> indexOnlyFields = Collections.<String> emptySet();
+    protected Set<String> indexOnlyFields = Collections.emptySet();
     protected FieldIndexAggregator fiAggregator = new IdentityAggregator(null);
     
     protected CompositeMetadata compositeMetadata;
@@ -338,13 +338,13 @@ public class IteratorBuildingVisitor extends BaseVisitor {
             // If there is no parent
             if (data == null) {
                 // Make this AndIterator the root node
-                if (andItr.includes().size() != 0) {
+                if (!andItr.includes().isEmpty()) {
                     root = andItr.build();
                 }
             } else {
                 // Otherwise, add this AndIterator to its parent
                 AbstractIteratorBuilder parent = (AbstractIteratorBuilder) data;
-                if (andItr.includes().size() != 0) {
+                if (!andItr.includes().isEmpty()) {
                     parent.addInclude(andItr.build());
                 }
             }
@@ -374,7 +374,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
         try {
             analyzer = new JavaRegexAnalyzer(String.valueOf(JexlASTHelper.getLiteralValue(node)));
             
-            LiteralRange<String> range = new LiteralRange<String>(JexlASTHelper.getIdentifier(node), NodeOperand.AND);
+            LiteralRange<String> range = new LiteralRange<>(JexlASTHelper.getIdentifier(node), NodeOperand.AND);
             range.updateLower(analyzer.getLeadingOrTrailingLiteral(), true);
             range.updateUpper(analyzer.getLeadingOrTrailingLiteral() + Constants.MAX_UNICODE_STRING, true);
             return range;
@@ -388,7 +388,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
         try {
             analyzer = new JavaRegexAnalyzer(String.valueOf(JexlASTHelper.getLiteralValue(node)));
             
-            LiteralRange<String> range = new LiteralRange<String>(JexlASTHelper.getIdentifier(node), NodeOperand.AND);
+            LiteralRange<String> range = new LiteralRange<>(JexlASTHelper.getIdentifier(node), NodeOperand.AND);
             range.updateLower(analyzer.getLeadingOrTrailingLiteral(), true);
             range.updateUpper(analyzer.getLeadingOrTrailingLiteral() + Constants.MAX_UNICODE_STRING, true);
             
@@ -459,13 +459,13 @@ public class IteratorBuildingVisitor extends BaseVisitor {
             // If there is no parent
             if (data == null) {
                 // Make this OrIterator the root node
-                if (orItr.includes().size() != 0) {
+                if (!orItr.includes().isEmpty()) {
                     root = orItr.build();
                 }
             } else {
                 // Otherwise, add this OrIterator to its parent
                 AbstractIteratorBuilder parent = (AbstractIteratorBuilder) data;
-                if (orItr.includes().size() != 0) {
+                if (!orItr.includes().isEmpty()) {
                     parent.addInclude(orItr.build());
                 }
                 if (log.isTraceEnabled()) {
@@ -713,8 +713,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
             if (source.getSourceSize() > 0)
                 mySource = source.deepCopy(env);
             
-            mySource.seek(new Range(newStartKey, true, newStartKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false), Collections.<ByteSequence> emptyList(),
-                            false);
+            mySource.seek(new Range(newStartKey, true, newStartKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false), Collections.emptyList(), false);
             
             if (mySource.hasTop()) {
                 kv.add(Maps.immutableEntry(mySource.getTopKey(), Constants.NULL_VALUE));
@@ -722,8 +721,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
             }
         }
         
-        SortedKeyValueIterator<Key,Value> kvIter = new IteratorToSortedKeyValueIterator(kv.iterator());
-        return kvIter;
+        return new IteratorToSortedKeyValueIterator(kv.iterator());
     }
     
     /**
@@ -736,8 +734,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
             
             Key newStartKey = getKey(node);
             
-            kvIter.seek(new Range(newStartKey, true, newStartKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false), Collections.<ByteSequence> emptyList(),
-                            false);
+            kvIter.seek(new Range(newStartKey, true, newStartKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false), Collections.emptyList(), false);
             
         }
     }
@@ -1196,14 +1193,13 @@ public class IteratorBuildingVisitor extends BaseVisitor {
             
             // Jexl might return us a null depending on the AST
             if (o != null && Boolean.class.isAssignableFrom(o.getClass())) {
-                Boolean result = (Boolean) o;
-                matched = result;
+                matched = (Boolean) o;
             } else if (o != null && Collection.class.isAssignableFrom(o.getClass())) {
                 // if the function returns a collection of matches, return
                 // true/false
                 // based on the number of matches
                 Collection<?> matches = (Collection<?>) o;
-                matched = (matches.size() > 0);
+                matched = (!matches.isEmpty());
             } else {
                 if (log.isDebugEnabled()) {
                     log.debug("Unable to process non-Boolean result from JEXL evaluation '" + o + "' for function query");
@@ -1308,7 +1304,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
     }
     
     public IteratorBuildingVisitor setFieldsToAggregate(Set<String> fieldsToAggregate) {
-        this.fieldsToAggregate = (fieldsToAggregate == null ? Collections.<String> emptySet() : fieldsToAggregate);
+        this.fieldsToAggregate = (fieldsToAggregate == null ? Collections.emptySet() : fieldsToAggregate);
         return this;
     }
     
@@ -1457,7 +1453,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
     
     public IteratorBuildingVisitor setIvaratorSources(SourceFactory sourceFactory, int maxIvaratorSources) {
         this.ivaratorSources = new SourcePool(sourceFactory, maxIvaratorSources);
-        this.ivaratorSource = new ThreadLocalPooledSource<Key,Value>(ivaratorSources);
+        this.ivaratorSource = new ThreadLocalPooledSource<>(ivaratorSources);
         return this;
     }
     
@@ -1472,7 +1468,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
     }
     
     public IteratorBuildingVisitor setTermFrequencyFields(Set<String> termFrequencyFields) {
-        this.termFrequencyFields = (termFrequencyFields == null ? Collections.<String> emptySet() : termFrequencyFields);
+        this.termFrequencyFields = (termFrequencyFields == null ? Collections.emptySet() : termFrequencyFields);
         return this;
     }
     
@@ -1482,7 +1478,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
     }
     
     public IteratorBuildingVisitor setIndexOnlyFields(Set<String> indexOnlyFields) {
-        this.indexOnlyFields = (indexOnlyFields == null ? Collections.<String> emptySet() : indexOnlyFields);
+        this.indexOnlyFields = (indexOnlyFields == null ? Collections.emptySet() : indexOnlyFields);
         return this;
     }
     

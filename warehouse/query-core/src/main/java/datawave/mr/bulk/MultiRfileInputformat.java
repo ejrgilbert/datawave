@@ -77,8 +77,8 @@ public class MultiRfileInputformat extends RFileInputFormat {
     
     private static LoadingCache<Range,Set<Tuple2<String,Set<String>>>> locationMap = null;
     
-    protected static Map<String,String> dfsUriMap = new ConcurrentHashMap<String,String>();
-    protected static Map<String,String> dfsDirMap = new ConcurrentHashMap<String,String>();
+    protected static Map<String,String> dfsUriMap = new ConcurrentHashMap<>();
+    protected static Map<String,String> dfsDirMap = new ConcurrentHashMap<>();
     
     @Override
     public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
@@ -226,7 +226,7 @@ public class MultiRfileInputformat extends RFileInputFormat {
             }
             
             if (metadataEntries == null || metadataEntries.isEmpty()) {
-                throw new IOException("Unable to find location or files associated with " + range.toString());
+                throw new IOException("Unable to find location or files associated with " + range);
             }
             
             for (Tuple2<String,Set<String>> entry : metadataEntries) {
@@ -235,7 +235,7 @@ public class MultiRfileInputformat extends RFileInputFormat {
                 if (fileLocations != null && !fileLocations.isEmpty()) {
                     
                     if (location == null || location.isEmpty()) {
-                        log.warn("Unable to find a location associated with " + range.toString() + " : ? -> " + fileLocations);
+                        log.warn("Unable to find a location associated with " + range + " : ? -> " + fileLocations);
                     }
                     
                     for (String fileLocation : fileLocations) {
@@ -255,7 +255,7 @@ public class MultiRfileInputformat extends RFileInputFormat {
                         rowMap.put(range.getStartKey().getRow(), range);
                     }
                 } else {
-                    log.warn("Unable to find a some files associated with " + range.toString() + " : " + location);
+                    log.warn("Unable to find a some files associated with " + range + " : " + location);
                 }
             }
         }
@@ -266,7 +266,7 @@ public class MultiRfileInputformat extends RFileInputFormat {
             for (Range range : binnedRanges.keySet()) {
                 Collection<RfileSplit> rangeSplits = binnedRanges.get(range);
                 
-                if (0 == rangeSplits.size())
+                if (rangeSplits.isEmpty())
                     continue;
                 TabletSplitSplit compositeInputSplit = new TabletSplitSplit(rangeSplits.size());
                 compositeInputSplit.setTable(tableName);

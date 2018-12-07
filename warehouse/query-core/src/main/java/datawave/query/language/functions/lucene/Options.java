@@ -1,5 +1,6 @@
 package datawave.query.language.functions.lucene;
 
+import datawave.query.jexl.functions.QueryFunctions;
 import datawave.query.language.functions.QueryFunction;
 import datawave.query.search.WildcardFieldedFilter;
 import datawave.webservice.query.exception.BadRequestQueryException;
@@ -14,14 +15,12 @@ import java.util.List;
 
 public class Options extends LuceneQueryFunction {
     public Options() {
-        super("options", new ArrayList<String>());
+        super(QueryFunctions.OPTIONS_FUNCTION, new ArrayList<>());
     }
     
     @Override
     public void initialize(List<String> parameterList, int depth, QueryNode parent) throws IllegalArgumentException {
         super.initialize(parameterList, depth, parent);
-        this.fieldedFilter = new WildcardFieldedFilter(false, WildcardFieldedFilter.BooleanType.AND);
-        this.fieldedFilter.addCondition(parameterList.get(0), ".+");
     }
     
     @Override
@@ -36,11 +35,6 @@ public class Options extends LuceneQueryFunction {
         if (!(this.parent instanceof AndQueryNode || this.parent instanceof BooleanQueryNode)) {
             throw new IllegalArgumentException("function: " + this.name + " must be part of an AND expression");
         }
-    }
-    
-    @Override
-    public String toString() {
-        return this.fieldedFilter.toString();
     }
     
     @Override

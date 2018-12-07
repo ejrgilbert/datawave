@@ -76,8 +76,6 @@ public class PropogatingIteratorTest {
         
         protected int callCount = 0;
         
-        public WrappedPropogatingAggregator() {}
-        
         @Override
         public boolean propogateKey() {
             // TODO Auto-generated method stub
@@ -280,7 +278,7 @@ public class PropogatingIteratorTest {
         topValueResults = new Value[gtv.length];
         System.arraycopy(gtv, 0, topValueResults, 0, gtv.length);
         
-        SortedKeyValueIterator<Key,Value> mock = new SortedKeyValueIterator<Key,Value>() {
+        return new SortedKeyValueIterator<Key,Value>() {
             
             @Override
             public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
@@ -324,8 +322,6 @@ public class PropogatingIteratorTest {
                 
             }
         };
-        
-        return mock;
     }
     
     long ts = 1349541830;
@@ -380,7 +376,7 @@ public class PropogatingIteratorTest {
         
         iter.init(data, options, env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -416,7 +412,7 @@ public class PropogatingIteratorTest {
         
         iter.init(data, options, env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -455,7 +451,7 @@ public class PropogatingIteratorTest {
         
         iter.init(data, null, env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
     }
     
     @Test(expected = NullPointerException.class)
@@ -482,7 +478,7 @@ public class PropogatingIteratorTest {
         
         iter.init(data, options, null);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
     }
     
     @Test
@@ -505,7 +501,7 @@ public class PropogatingIteratorTest {
         
         iter.init(data, options, env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -534,7 +530,7 @@ public class PropogatingIteratorTest {
         
         iter.init(data, options, env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -574,7 +570,7 @@ public class PropogatingIteratorTest {
         
         iter.init(data, options, env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -611,7 +607,7 @@ public class PropogatingIteratorTest {
         
         iter.init(data, options, env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -706,7 +702,7 @@ public class PropogatingIteratorTest {
         iter.init(data, options, env);
         iter = iter.deepCopy(env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -743,7 +739,7 @@ public class PropogatingIteratorTest {
         iter.init(data, options, env);
         iter = iter.deepCopy(env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -782,7 +778,7 @@ public class PropogatingIteratorTest {
         
         iter.init(data, null, env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
     }
     
     @Test(expected = NullPointerException.class)
@@ -809,7 +805,7 @@ public class PropogatingIteratorTest {
         
         iter.init(data, options, null);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
     }
     
     @Test
@@ -833,7 +829,7 @@ public class PropogatingIteratorTest {
         iter.init(data, options, env);
         iter = iter.deepCopy(env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -863,7 +859,7 @@ public class PropogatingIteratorTest {
         iter.init(data, options, env);
         iter = iter.deepCopy(env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -904,7 +900,7 @@ public class PropogatingIteratorTest {
         iter.init(data, options, env);
         iter = iter.deepCopy(env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -942,7 +938,7 @@ public class PropogatingIteratorTest {
         iter.init(data, options, env);
         iter = iter.deepCopy(env);
         
-        iter.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+        iter.seek(new Range(), Collections.emptyList(), false);
         
         Assert.assertTrue(iter.hasTop());
         
@@ -987,7 +983,7 @@ public class PropogatingIteratorTest {
                 Random rand = new Random();
                 LockSupport.parkNanos(rand.nextInt(10));
                 
-                myitr.seek(new Range(), Collections.<ByteSequence> emptyList(), false);
+                myitr.seek(new Range(), Collections.emptyList(), false);
                 
                 List<Entry<Key,Value>> resultList = Lists.newArrayList();
                 

@@ -12,7 +12,7 @@ import org.apache.log4j.Logger;
  * A constructed trie which can scan a string for tokens and return a ttl value. A TtlTrie is an immutable object, and as such is inherently threadsafe.
  */
 public final class TokenTtlTrie {
-    private final static Logger log = Logger.getLogger(TokenTtlTrie.class);
+    private static final Logger log = Logger.getLogger(TokenTtlTrie.class);
     protected static final short DELIMITER_CHAR_CLASS = -1;
     protected static final short UNRECOGNIZED_CHAR_CLASS = -2;
     protected static final int REJECT_TOKEN = -1;
@@ -98,7 +98,7 @@ public final class TokenTtlTrie {
         }
         
         Builder(MERGE_MODE mergeMode) {
-            transitionMaps.add(new HashMap<Byte,Integer>());
+            transitionMaps.add(new HashMap<>());
             stateTtlList.add(null);
             statePriorityList.add(null);
             this.isMerge = mergeMode.equals(MERGE_MODE.ON);
@@ -131,7 +131,7 @@ public final class TokenTtlTrie {
                     curState = transMap.get(b);
                 } else {
                     curState = transitionMaps.size();
-                    transitionMaps.add(new HashMap<Byte,Integer>());
+                    transitionMaps.add(new HashMap<>());
                     stateTtlList.add(null);
                     statePriorityList.add(null);
                     transMap.put(b, curState);
