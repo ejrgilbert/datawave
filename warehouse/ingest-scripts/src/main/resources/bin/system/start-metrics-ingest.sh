@@ -35,19 +35,20 @@ else
   echo $INGEST_HOST > $ingestHost
 
   localhost=$(hostname -s)
-  rm -rf /tmp/pdsh_log/${script_name}/$$
+  PDSH_OUT="${PDSH_LOG_DIR}/${script_name}/$$"
+  rm -rf ${PDSH_OUT}
   pdsh -f 25 -w ^${ingestHost} "$METRICS_BIN/metrics/startMetricsIngest.sh ingest $FORCE" < /dev/null \
-    1> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/ingest_cmd/stdout) \
-    2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/ingest_cmd/stderr); \
-    cat /tmp/pdsh_log/${script_name}/$$/ingest_cmd/stderr/pdsh\@${localhost} 2> /dev/null
+    1> >(dshbak -f -d ${PDSH_OUT}/ingest_cmd/stdout) \
+    2> >(dshbak -f -d ${PDSH_OUT}/ingest_cmd/stderr); \
+    cat ${PDSH_OUT}/ingest_cmd/stderr/pdsh\@${localhost} 2> /dev/null
   pdsh -f 25 -w ^${ingestHost} "$METRICS_BIN/metrics/startMetricsIngest.sh loader $FORCE" < /dev/null \
-    1> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/loader_cmd/stdout) \
-    2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/loader_cmd/stderr); \
-    cat /tmp/pdsh_log/${script_name}/$$/loader_cmd/stderr/pdsh\@${localhost} 2> /dev/null
+    1> >(dshbak -f -d ${PDSH_OUT}/loader_cmd/stdout) \
+    2> >(dshbak -f -d ${PDSH_OUT}/loader_cmd/stderr); \
+    cat ${PDSH_OUT}/loader_cmd/stderr/pdsh\@${localhost} 2> /dev/null
   pdsh -f 25 -w ^${ingestHost} "$METRICS_BIN/metrics/startMetricsIngest.sh flagmaker $FORCE" < /dev/null \
-    1> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/flagmaker_cmd/stdout) \
-    2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/flagmaker_cmd/stderr); \
-    cat /tmp/pdsh_log/${script_name}/$$/flagmaker_cmd/stderr/pdsh\@${localhost} 2> /dev/null
+    1> >(dshbak -f -d ${PDSH_OUT}/flagmaker_cmd/stdout) \
+    2> >(dshbak -f -d ${PDSH_OUT}/flagmaker_cmd/stderr); \
+    cat ${PDSH_OUT}/flagmaker_cmd/stderr/pdsh\@${localhost} 2> /dev/null
 
   rm $ingestHost
   trap - INT TERM EXIT

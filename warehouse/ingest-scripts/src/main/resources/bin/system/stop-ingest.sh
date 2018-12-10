@@ -28,11 +28,12 @@ else
   echo $INGEST_HOST > $ingestHost
 
   localhost=$(hostname -s)
-  rm -rf /tmp/pdsh_log/${script_name}/$$
+  PDSH_OUT="${PDSH_LOG_DIR}/${script_name}/$$"
+  rm -rf ${PDSH_OUT}
   pdsh -f 25 -w ^${ingestHost} "$INGEST_BIN/ingest/stop-ingesters.sh $@" < /dev/null \
-    1> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/stdout) \
-    2> >(dshbak -f -d /tmp/pdsh_log/${script_name}/$$/stderr); \
-    cat /tmp/pdsh_log/${script_name}/$$/stderr/pdsh\@${localhost} 2> /dev/null
+    1> >(dshbak -f -d ${PDSH_OUT}/stdout) \
+    2> >(dshbak -f -d ${PDSH_OUT}/stderr); \
+    cat ${PDSH_OUT}/stderr/pdsh\@${localhost} 2> /dev/null
 
   rm $ingestHost
   trap - INT TERM EXIT
