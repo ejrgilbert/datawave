@@ -1,0 +1,69 @@
+version: "2.1"
+
+services:
+  tserver1:
+    extends:
+      file: base_services.yml
+      service: accumulo
+    container_name: tserver1
+    hostname: tserver1
+
+  tserver2:
+    extends:
+      file: base_services.yml
+      service: accumulo
+    container_name: tserver2
+    hostname: tserver2
+
+  tserver3:
+    extends:
+      file: base_services.yml
+      service: accumulo
+    container_name: tserver3
+    hostname: tserver3
+
+  tserver4:
+    extends:
+      file: base_services.yml
+      service: accumulo
+    container_name: tserver4
+    hostname: tserver4
+
+  master:
+    extends:
+      file: base_services.yml
+      service: accumulo
+    container_name: master
+    hostname: master
+    restart: "no"
+    tty: true
+    healthcheck:
+      test: ["CMD-SHELL", "hdfs dfs -test -e hdfs://namenode:8020/accumulo/instance_id" ]
+      interval: 10s
+      timeout: 3m
+      retries: 100
+    ports:
+      - ${ACCUMULO_MASTER_PORT}:${ACCUMULO_MASTER_PORT}
+    environment:
+      SERVICE_PRECONDITION: "zoo1:${ZOO_PORT} zoo2:${ZOO_PORT} zoo3:${ZOO_PORT} namenode:${HADOOP_NAMENODE_PORT} datanode1:${HADOOP_DATANODE_PORT}"
+
+  gc:
+    extends:
+      file: base_services.yml
+      service: accumulo
+    container_name: gc
+    hostname: gc
+
+  monitor:
+    extends:
+      file: base_services.yml
+      service: accumulo
+    container_name: monitor
+    hostname: monitor
+    healthcheck:
+      test: ["CMD-SHELL", "runuser -l -c \"/opt/accumulo/current/bin/accumulo shell -u root -p accumulo -e 'scan -t accumulo.metadata'\""]
+      interval: 10s
+      timeout: 3m
+      retries: 100
+    ports:
+      - ${ACCUMULO_MONITOR_PORT}:${ACCUMULO_MONITOR_PORT}

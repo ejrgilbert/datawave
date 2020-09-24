@@ -1,0 +1,15 @@
+zoo1 cluster=compose,ingest=zookeeper,zookeeper
+zoo2 cluster=compose,ingest=zookeeper,zookeeper
+zoo3 cluster=compose,ingest=zookeeper,zookeeper
+master cluster=compose,ingest=accumulo_master,accumulo_master,accumulomaster
+tserver1 cluster=compose,ingest=tserver,tserver
+tserver2 cluster=compose,ingest=tserver,tserver
+tserver3 cluster=compose,ingest=tserver,tserver
+tserver4 cluster=compose,ingest=tserver,tserver
+gc cluster=compose,ingest=gc,gc
+monitor cluster=compose,ingest=monitor,monitor
+resourcemanager cluster=compose,ingest=resourcemanager,resourcemanager
+historyserver cluster=compose,ingest=historyserver,historyserver
+nodemanager1 cluster=compose,ingest=nodemanager,nodemanager
+datanode1 cluster=compose,ingest=datanode,datanode
+ingestmaster cluster=compose,ingest=ingestmaster,ingestmaster

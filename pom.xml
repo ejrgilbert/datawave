@@ -1620,6 +1620,29 @@
             </build>
         </profile>
         <profile>
+            <id>compose</id>
+            <properties>
+                <build.env>compose</build.env>
+                <env>compose</env>
+            </properties>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>gov.nsa.datawave.plugins</groupId>
+                            <artifactId>read-properties</artifactId>
+                            <configuration>
+                                <files>
+                                    <file>compose.properties</file>
+                                    <file>compose-passwords.properties</file>
+                                </files>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+        <profile>
             <id>javadoc</id>
             <activation>
                 <property>

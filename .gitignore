@@ -1,3 +1,7 @@
+# docker-compose files
+contrib/datawave-quickstart/docker/compose/yum/repo/*
+contrib/datawave-quickstart/docker/compose/.env
+
 **/bin
 # Don't ignore the scripts bin dirs
 !**/datawave-quickstart/bin/

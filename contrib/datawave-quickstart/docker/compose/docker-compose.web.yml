@@ -1,0 +1,30 @@
+version: "2.1"
+
+services:
+  webservice:
+    image: webservice-compose
+    container_name: webservice
+    hostname: webservice
+    restart: always
+    environment:
+      - DEBUG=true
+      - DEBUG_PORT=8787
+    depends_on:
+      ingest_master:
+        condition: service_healthy
+    ports:
+      - 8443:8443
+      - 8787:8787
+    volumes:
+      - ${CERT_DIR}:/etc/pki/private
+    healthcheck:
+      test: [ "CMD-SHELL", "egrep 'WildFly Full .* started.* in [0-9]*ms' /opt/jboss/wildfly/standalone/log/server.log" ]
+      interval: 10s
+      timeout: 3m
+      retries: 100
+
+  # TODO may not need config service
+#  configuration:
+#    image: config-service
+#    container_name: configuration
+#    hostname: configuration
