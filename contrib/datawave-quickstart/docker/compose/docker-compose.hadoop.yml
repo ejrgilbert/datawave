@@ -1,0 +1,78 @@
+version: "2.1"
+
+services:
+  namenode:
+    extends:
+      file: base_services.yml
+      service: hadoop
+    image: dtspence/hadoop-namenode:${HADOOP_VERSION}
+    hostname: namenode
+    container_name: namenode
+    healthcheck:
+      test: ["CMD-SHELL", "exit `hdfs dfsadmin -safemode get | grep -v OFF | wc -l`" ]
+      interval: 10s
+      timeout: 3m
+      retries: 100
+    environment:
+      - CLUSTER_NAME=compose
+    volumes:
+      - hadoop_namenode_namedir:/hadoop/dfs/name
+      - hadoop_namenode_editsdir:/srv/data/hadoop/dfs/edits
+
+  resourcemanager:
+    extends:
+      file: base_services.yml
+      service: hadoop
+    image: dtspence/hadoop-resourcemanager:${HADOOP_VERSION}
+    hostname: resourcemanager
+    container_name: resourcemanager
+    depends_on:
+      - namenode
+    environment:
+      SERVICE_PRECONDITION: "namenode:${HADOOP_NAMENODE_PORT}"
+
+  historyserver:
+    extends:
+      file: base_services.yml
+      service: hadoop
+    image: dtspence/hadoop-historyserver:${HADOOP_VERSION}
+    hostname: historyserver
+    container_name: historyserver
+    depends_on:
+      - namenode
+    environment:
+      SERVICE_PRECONDITION: "namenode:${HADOOP_NAMENODE_PORT}"
+    volumes:
+      - hadoop_historyserver:/hadoop
+
+  nodemanager1:
+    extends:
+      file: base_services.yml
+      service: hadoop
+    image: dtspence/hadoop-nodemanager:${HADOOP_VERSION}
+    hostname: nodemanager
+    container_name: nodemanager
+    depends_on:
+      - namenode
+    environment:
+      SERVICE_PRECONDITION: "namenode:${HADOOP_NAMENODE_PORT}"
+
+  datanode1:
+    extends:
+      file: base_services.yml
+      service: hadoop
+    image: dtspence/hadoop-datanode:${HADOOP_VERSION}
+    hostname: datanode1
+    container_name: datanode1
+    depends_on:
+      - namenode
+    environment:
+      SERVICE_PRECONDITION: "namenode:${HADOOP_NAMENODE_PORT}"
+    volumes:
+      - hadoop_datanode1:/hadoop/dfs/data
+
+volumes:
+  hadoop_namenode_namedir:
+  hadoop_namenode_editsdir:
+  hadoop_datanode1:
+  hadoop_historyserver:

@@ -1,0 +1,49 @@
+version: "2.1"
+
+
+services:
+  zookeeper:
+#    image: zookeeper:${ZOOKEEPER_VERSION}
+    image: zookeeper
+    restart: always
+    volumes:
+      - ${CONF_DIR}/flavor/zookeeper:/etc/zookeeper/conf:z
+      - ${CONF_DIR}/genders:/etc/genders:z
+    healthcheck:
+      test: [ "CMD-SHELL", "echo ruok | nc localhost ${ZOO_PORT} | grep imok" ]
+      interval: 10s
+      timeout: 3m
+      retries: 100
+    environment:
+      ZOO_SERVER_1: zoo1
+      ZOO_SERVER_2: zoo2
+      ZOO_SERVER_3: zoo3
+
+  hadoop:
+    image: centos:centos7 # Image will be overwritten in extensions
+    volumes:
+      - ${CONF_DIR}/flavor/hadoop/2:/etc/hadoop/conf:z
+      - ${CONF_DIR}/genders:/etc/genders:z
+
+  accumulo:
+#    image: accumulo:${ACCUMULO_VERSION}
+    image: accumulo
+    restart: always
+    volumes:
+      - ${CONF_DIR}/flavor/accumulo:/opt/accumulo/current/conf:z
+      - ${CONF_DIR}/flavor/hadoop/2:/etc/hadoop/conf:z
+      - ${CONF_DIR}/genders:/etc/genders:z
+
+  datawave:
+    image: ${DATAWAVE_IMG}
+    restart: "no"
+    volumes:
+      - ${YUM_FILE}:/etc/yum.repos.d/custom.repo:z
+      - ${CONF_DIR}/genders:/etc/genders:z
+      - ${CERT_DIR}:/etc/pki/private:ro
+      - ${CONF_DIR}/common/*:/opt/datawave:z
+      - ${CONF_DIR}/flavor/hadoop/2:/opt/datawave/hadoop/conf:z
+      - ${CONF_DIR}/flavor/accumulo:/opt/datawave/accumulo/conf:z
+      - ${CONF_DIR}/flavor/zookeeper:/opt/datawave/zookeeper/conf:z
+    environment:
+      SERVICE_PRECONDITION: "namenode:${HADOOP_NAMENODE_PORT} master:${ACCUMULO_MASTER_PORT} monitor:${ACCUMULO_MONITOR_PORT}"

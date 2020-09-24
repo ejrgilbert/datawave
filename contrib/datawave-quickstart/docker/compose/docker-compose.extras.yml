@@ -1,0 +1,25 @@
+version: '2.1'
+
+services:
+  dps:
+    hostname: dns.mageddo
+    container_name: dns-proxy-server
+    ports:
+      - 5380:5380
+    image: defreitas/dns-proxy-server
+    environment:
+      - MG_REGISTER_CONTAINER_NAMES=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/dns-proxy-server/conf:/app/conf
+      - /etc/resolv.conf:/etc/resolv.conf
+
+  yumrepo:
+    image: dgutierrez1287/yum-repo
+    hostname: yumrepo
+    container_name: yumrepo
+    ports:
+      - 8080:80
+    volumes:
+      - ${YUM_REPO}:/repo:z
+      - /etc/localtime:/etc/localtime

@@ -1,0 +1,29 @@
+version: "2.1"
+
+services:
+  zoo1:
+    command: "-persist"
+  zoo2:
+    command: "-persist"
+  zoo3:
+    command: "-persist"
+
+  namenode:
+    command: "/start-namenode.sh -persist"
+#    volumes:
+#      - hadoop_namenode:/hadoop/dfs/name
+#  historyserver:
+#    volumes:
+#      - hadoop_historyserver:/hadoop
+
+  master:
+    command: "master -persist"
+
+#  datanode1:
+#    volumes:
+#      - hadoop_datanode1:/hadoop/dfs/data
+#
+#volumes:
+#  hadoop_namenode:
+#  hadoop_datanode1:
+#  hadoop_historyserver:
