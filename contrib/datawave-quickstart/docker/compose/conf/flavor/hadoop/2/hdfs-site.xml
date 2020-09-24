@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+    <property>
+        <name>dfs.namenode.edits.dir</name>
+        <value>file://${hadoop.tmp.dir}/dfs/edits</value>
+    </property>
+    <property>
+        <name>dfs.namenode.checkpoint.dir</name>
+        <value>file://${hadoop.tmp.dir}/dfs/checkpoint</value>
+    </property>
+    <property>
+        <name>dfs.namenode.data.dir</name>
+        <value>file://${hadoop.tmp.dir}/dfs/data</value>
+    </property>
+    <property>
+        <name>dfs.permissions.superusergroup</name>
+        <value>hadoop</value>
+    </property>
+    <property>
+        <name>dfs.replication</name>
+        <value>1</value>
+    </property>
+    <property>
+        <name>dfs.support.append</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>dfs.durable.sync</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>dfs.datanode.synconclose</name>
+        <value>true</value>
+    </property>
+
+    <!-- Moved from hadoop.env file (which used entrypoint.sh scripts to append to configs) -->
+        <property>
+            <name>dfs.namenode.name.dir</name>
+            <value>file:///hadoop/dfs/name</value>
+        </property>
+        <property>
+            <name>dfs.datanode.data.dir</name>
+            <value>file:///hadoop/dfs/data</value>
+        </property>
+        <property>
+            <name>dfs.permissions.enabled</name>
+            <value>false</value>
+        </property>
+        <property>
+            <name>dfs.webhdfs.enabled</name>
+            <value>true</value>
+        </property>
+        <property>
+            <name>dfs.client.use.datanode.hostname</name>
+            <value>true</value>
+        </property>
+        <property>
+            <name>dfs.datanode.use.datanode.hostname</name>
+            <value>true</value>
+        </property>
+    <!-- End moved hadoop.env properties -->
+</configuration>

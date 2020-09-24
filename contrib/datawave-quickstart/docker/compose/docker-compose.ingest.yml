@@ -1,0 +1,14 @@
+version: "2.1"
+
+services:
+  ingest_master:
+    extends:
+      file: base_services.yml
+      service: datawave
+    container_name: ingestmaster
+    hostname: ingestmaster
+    healthcheck:
+      test: [ "CMD-SHELL", "runuser -l datawave -c 'if [[ -x /opt/datawave-ingest/current/bin/system/list-all.sh ]]; then running=$$(/opt/datawave-ingest/current/bin/system/list-all.sh | wc -l); [[ $$running == \"6\" ]] && exit 0; fi; exit 1;'" ]
+      interval: 10s
+      timeout: 6m
+      retries: 100

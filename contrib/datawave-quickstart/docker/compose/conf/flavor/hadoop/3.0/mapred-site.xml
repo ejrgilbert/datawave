@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+
+    <property>
+        <name>mapreduce.framework.name</name>
+        <value>yarn</value>
+    </property>
+    <property>
+        <name>mapreduce.job.user.classpath.first</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>mapreduce.job.queuename</name>
+        <value>${user.name}</value>
+    </property>
+    <property>
+        <name>yarn.app.mapreduce.am.staging-dir</name>
+        <value>/tmp/hadoop-yarn/staging</value>
+        <description>The staging directory used while submitting jobs (default: /tmp/hadoop-yarn/staging)</description>
+    </property>
+    <property>
+        <name>yarn.app.mapreduce.am.resource.mb</name>
+        <value>512</value>
+        <description>The amount of memory the MR AppMaster needs (default 1536)</description>
+    </property>
+    <property>
+        <name>yarn.app.mapreduce.am.resource.cpu-vcores</name>
+        <value>1</value>
+        <description>The number of virtual CPU cores the MR AppMaster needs (default 1)</description>
+    </property>
+    <property>
+        <name>yarn.app.mapreduce.am.command-opts</name>
+        <value>-Xmx512m</value>
+        <description>Java opts for the MR AppMaster process (default -Xmx1024m)</description>
+    </property>
+
+    <!-- Map Tasks -->
+    <property>
+        <name>mapreduce.map.memory.mv</name>
+        <value>1280</value>
+        <description>The amount of memory to request from the scheduler for each map task (default 1024)</description>
+    </property>
+    <property>
+        <name>mapreduce.map.java.opts</name>
+        <value>-Xmx1498m</value>
+        <description>Java opts for each map task (default ?)</description>
+    </property>
+    <property>
+        <name>mapreduce.map.cpu.vcores</name>
+        <value>1</value>
+        <description>The amount of virtual cores to request from the scheduler for each map task (default 1)</description>
+    </property>
+
+    <!-- Reduce Tasks -->
+    <property>
+        <name>mapreduce.reduce.memory.mb</name>
+        <value>1280</value>
+        <description>The amount of memory to request from the scheduler for each reduce task (default 1024)</description>
+    </property>
+    <property>
+        <name>mapreduce.reduce.java.opts</name>
+        <value>-Xmx1498m</value>
+        <description>Java opts for each reduce task (default ?)</description>
+    </property>
+    <property>
+        <name>mapreduce.reduce.cpu.vcores</name>
+        <value>1</value>
+        <description>The amount of virtual cores to request from the scheduler for each reduce task (default 1)</description>
+    </property>
+
+    <!-- Copy/Shuffle -->
+    <property>
+        <name>mapreduce.task.io.sort.mb</name>
+        <value>100</value>
+        <description>The total amount of buffer memory to use while sorting files, in megabytes (default 100)</description>
+    </property>
+    <property>
+        <name>mapreduce.task.io.sort.factor</name>
+        <value>10</value>
+        <description>
+            The number of streams to sort at once while sorting files. This determines the number of open file handles (default 10).
+        </description>
+    </property>
+    <property>
+        <name>mapreduce.reduce.shuffle.parallelcopies</name>
+        <value>5</value>
+        <description>The default number of parallel transfers run by reduce during the copy(shuffle) phase (default 5).</description>
+    </property>
+
+    <!-- Job History Server -->
+    <property>
+        <name>mapreduce.jobhistory.address</name>
+        <value>historyserver:10020</value>
+        <description>MapReduce JobHistory Server IPC (default 0.0.0.0:10020)</description>
+    </property>
+    <property>
+        <name>mapreduce.jobhistory.webapp.address</name>
+        <value>0.0.0.0:19888</value>
+        <description>MapReduce JobHistory Server Web UI (default 0.0.0.0:19888)</description>
+    </property>
+    <property>
+        <name>yarn.timeline-service.address</name>
+        <value>${yarn.timeline-service.hostname}:10020</value>
+    </property>
+
+    <!-- Other -->
+    <property>
+        <name>mapreduce.job.counters.counter.name.max</name>
+        <value>512</value>
+        <description>Limit on the size of the counter name (default 64)</description>
+    </property>
+    <property>
+        <name>mapreduce.job.counters.max</name>
+        <value>10000</value>
+    </property>
+    <property>
+        <name>yarn.nodemanager.bind-host</name>
+        <value>0.0.0.0</value>
+    </property>
+</configuration>

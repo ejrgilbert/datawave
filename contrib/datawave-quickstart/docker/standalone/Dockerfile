@@ -18,7 +18,7 @@ ENV YARN_IDENT_STRING=root HADOOP_MAPRED_IDENT_STRING=root
 
 # Build context should be the DataWave source root, minus .git and other dirs. See .dockerignore
 
-COPY . /opt/datawave
+COPY .. /opt/datawave
 
 # Install dependencies, configure password-less/zero-prompt SSH...
 

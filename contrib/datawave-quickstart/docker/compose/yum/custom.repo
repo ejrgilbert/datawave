@@ -1,0 +1,4 @@
+[custom]
+name=Custom Repo
+baseurl=http://yumrepo/
+gpgcheck=0
