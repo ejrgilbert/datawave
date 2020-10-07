@@ -2,7 +2,6 @@
 
 THIS_DIR=$(dirname "$(realpath "$0")")
 
-source "${THIS_DIR}/util/deploy.env"
 source "${THIS_DIR}/util/logging.sh"
 
 ZOO="zoo"
@@ -52,6 +51,9 @@ function usage() {
 
 function up() {
     pushd "${THIS_DIR}" >/dev/null || error_exit "Could not change dirs to ${THIS_DIR}"
+
+    # Make sure the confs are readable as mounted dirs
+    chmod -R 777 ./conf
 
     # If restarting the stack, remove all orphaned containers first
     if [[ ${FULL_STACK} == "true" ]]; then

@@ -5,6 +5,8 @@ DATAWAVE_DIR=$(realpath "${THIS_DIR}/../../../..")
 DEPLOY_ENV="${THIS_DIR}/.env"
 
 # shellcheck disable=SC1090
+source "${THIS_DIR}/util/build.env"
+# shellcheck disable=SC1090
 source "${THIS_DIR}/util/logging.sh"
 
 # Define some variables for docker-compose deployment use
@@ -44,21 +46,30 @@ rm "${DEPLOY_ENV}"
 header "Datawave Build/Deploy Script"
 
 function usage() {
-    echo "Usage: $0 [ -s|--skip-build ] [ -d|--deploy ] [ -v|--version <datawave_tag> ] [ -p|--persist ]"
+    echo "Usage: $0 [ -s|--skip-build ] [-x|--skip-tests] [-y|--skip-docs] [ -d|--deploy ] [ -v|--version <datawave_tag> ] [ -p|--persist ]"
     echo -e "\tBy default, this script will build a new RPM from the datawave mvn project located at ${DATAWAVE_DIR}"
     echo -e "\tOptions:"
-    echo -e "\t\t--skip-build - If you would like to launch a docker-compose cluster for a specific Datawave tag version."
-    echo -e "\t\t             NOTE: This will NOT build and deploy a new RPM from the local Datawave repo"
+    echo -e "\t\t--skip-build - Skip the maven RPM build, go straight to the deployment"
+    echo -e "\t\t--skip-tests - If you don't want to run the tests during the maven build"
+    echo -e "\t\t--skip-docs - If you don't want to build the docs during the maven build"
     echo -e "\t\t--deploy - If you want to launch a new docker-compose cluster that deploys the built Datawave RPM"
     echo -e "\t\t--version - If you want to launch a specific datawave tagged release in the docker compose environment."
     echo -e "\t\t            The docker image with that release installed will be run in a complete compose cluster."
+    echo -e "\t\t            NOTE: This will NOT build and deploy a new RPM from the local Datawave repo"
     echo -e "\t\t--persist - to retain old accumulo data from a previous deploy"
     exit 1
 }
 
 function build_rpm() {
     pushd "${DATAWAVE_DIR}" >/dev/null || error_exit "Could not change dirs to ${DATAWAVE_DIR}"
-    mvn -Pcompose,assemble,rpm -Ddeploy -Dtar -Ddist -DskipTests clean install || \
+    if [[ ${SKIP_TESTS} == "true" ]]; then
+        EXTRA_ARGS="${EXTRA_ARGS} -DskipTests"
+    fi
+    if [[ ${BUILD_DOCS} == "true" ]]; then
+        EXTRA_ARGS="${EXTRA_ARGS} -Ddist"
+    fi
+
+    mvn ${BUILD_PROFILES} -Ddeploy -Dtar ${EXTRA_ARGS} clean install || \
         error_exit "Build failed..."
     popd >/dev/null || error_exit "Could not change dirs"
 }
@@ -144,6 +155,14 @@ while (( "$#" )); do
     case "$1" in
         -s|--skip-build)
             BUILD_RPM="false"
+            shift
+            ;;
+        -x|--skip-tests)
+            SKIP_TESTS="true"
+            shift
+            ;;
+        -y|--skip-docs)
+            BUILD_DOCS="false"
             shift
             ;;
         -d|--deploy)
