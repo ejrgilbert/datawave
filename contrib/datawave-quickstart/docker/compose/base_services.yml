@@ -3,8 +3,7 @@ version: "2.1"
 
 services:
   zookeeper:
-#    image: zookeeper:${ZOOKEEPER_VERSION}
-    image: zookeeper
+    image: zookeeper:${ZOOKEEPER_VERSION}
     restart: always
     volumes:
       - ${CONF_DIR}/flavor/zookeeper:/etc/zookeeper/conf:z
@@ -26,8 +25,7 @@ services:
       - ${CONF_DIR}/genders:/etc/genders:z
 
   accumulo:
-#    image: accumulo:${ACCUMULO_VERSION}
-    image: accumulo
+    image: accumulo:${ACCUMULO_VERSION}
     restart: always
     volumes:
       - ${CONF_DIR}/flavor/accumulo:/opt/accumulo/current/conf:z
