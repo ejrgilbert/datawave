@@ -89,8 +89,8 @@ EXPOSE 8443 9995 50070 8088 9000 2181
 
 WORKDIR /opt/datawave/contrib/datawave-quickstart
 
-RUN ln -s /opt/datawave/contrib/datawave-quickstart/docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh && \
-    ln -s /opt/datawave/contrib/datawave-quickstart/docker/datawave-bootstrap.sh /usr/local/bin/datawave-bootstrap.sh
+RUN ln -s /opt/datawave/contrib/datawave-quickstart/docker/standalone/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh && \
+    ln -s /opt/datawave/contrib/datawave-quickstart/docker/standalone/datawave-bootstrap.sh /usr/local/bin/datawave-bootstrap.sh
 
 # The entrypoint script will ensure that sshd is started, and it'll simply 'exec "$@"' whatever command is passed
 
