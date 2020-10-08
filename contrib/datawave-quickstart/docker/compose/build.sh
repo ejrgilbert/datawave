@@ -46,7 +46,7 @@ rm "${DEPLOY_ENV}"
 header "Datawave Build/Deploy Script"
 
 function usage() {
-    echo "Usage: $0 [ -s|--skip-build ] [-x|--skip-tests] [-y|--skip-docs] [ -d|--deploy ] [ -v|--version <datawave_tag> ] [ -p|--persist ]"
+    echo "Usage: $0 [ -s|--skip-build ] [-x|--skip-tests] [-y|--skip-docs] [-P<profiles>] [ -d|--deploy ] [ -v|--version <datawave_tag> ] [ -p|--persist ]"
     echo -e "\tBy default, this script will build a new RPM from the datawave mvn project located at ${DATAWAVE_DIR}"
     echo -e "\tOptions:"
     echo -e "\t\t--skip-build - Skip the maven RPM build, go straight to the deployment"
@@ -61,15 +61,18 @@ function usage() {
 }
 
 function build_rpm() {
+    local _extra_args
+
     pushd "${DATAWAVE_DIR}" >/dev/null || error_exit "Could not change dirs to ${DATAWAVE_DIR}"
     if [[ ${SKIP_TESTS} == "true" ]]; then
-        EXTRA_ARGS="${EXTRA_ARGS} -DskipTests"
+        _extra_args="${_extra_args} -DskipTests"
     fi
     if [[ ${BUILD_DOCS} == "true" ]]; then
-        EXTRA_ARGS="${EXTRA_ARGS} -Ddist"
+        _extra_args="${_extra_args} -Ddist"
     fi
-
-    mvn ${BUILD_PROFILES} -Ddeploy -Dtar ${EXTRA_ARGS} clean install || \
+    echo "mvn ${BUILD_PROFILES} -Ddeploy -Dtar ${_extra_args} clean install"
+    exit 0
+    mvn ${BUILD_PROFILES} -Ddeploy -Dtar ${_extra_args} clean install || \
         error_exit "Build failed..."
     popd >/dev/null || error_exit "Could not change dirs"
 }
@@ -163,6 +166,10 @@ while (( "$#" )); do
             ;;
         -y|--skip-docs)
             BUILD_DOCS="false"
+            shift
+            ;;
+        -P*)
+            BUILD_PROFILES="$1"
             shift
             ;;
         -d|--deploy)
