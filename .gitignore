@@ -1,7 +1,3 @@
-# docker-compose files
-contrib/datawave-quickstart/docker/compose/yum/repo/*
-contrib/datawave-quickstart/docker/compose/.env
-
 **/bin
 # Don't ignore the scripts bin dirs
 !**/datawave-quickstart/bin/
@@ -50,3 +46,12 @@ web-services/geoserver/geoserver-application/overlays/
 
 services/sample_configuration/*-dev.yml
 /.metadata/
+
+# docker-compose files
+contrib/datawave-quickstart/docker/compose/volumes/yum/repo/*
+contrib/datawave-quickstart/docker/compose/volumes/logs/accumulo/*
+contrib/datawave-quickstart/docker/compose/volumes/logs/datawave/*
+contrib/datawave-quickstart/docker/compose/volumes/logs/hadoop/*
+contrib/datawave-quickstart/docker/compose/volumes/logs/zookeeper/*
+contrib/datawave-quickstart/docker/compose/.env
+

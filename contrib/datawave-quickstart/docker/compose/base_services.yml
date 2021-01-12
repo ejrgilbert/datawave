@@ -6,6 +6,7 @@ services:
     image: zookeeper:${ZOOKEEPER_VERSION}
     restart: always
     volumes:
+      - ${ZOO_LOG_DIR}:/var/log/zookeeper:z
       - ${CONF_DIR}/flavor/zookeeper:/etc/zookeeper/conf:z
       - ${CONF_DIR}/genders:/etc/genders:z
     healthcheck:
@@ -21,13 +22,16 @@ services:
   hadoop:
     image: centos:centos7 # Image will be overwritten in extensions
     volumes:
+      - ${HADOOP_LOG_DIR}:/srv/logs/hadoop:z
       - ${CONF_DIR}/flavor/hadoop/2:/etc/hadoop/conf:z
+      - ${CONF_DIR}/flavor/hadoop/hadoop-env.sh:/etc/hadoop/conf/hadoop-env.sh:z
       - ${CONF_DIR}/genders:/etc/genders:z
 
   accumulo:
     image: accumulo:${ACCUMULO_VERSION}
     restart: always
     volumes:
+      - ${ACCUMULO_LOG_DIR}:/srv/logs/accumulo:z
       - ${CONF_DIR}/flavor/accumulo:/opt/accumulo/current/conf:z
       - ${CONF_DIR}/flavor/hadoop/2:/etc/hadoop/conf:z
       - ${CONF_DIR}/genders:/etc/genders:z
@@ -36,10 +40,15 @@ services:
     image: ${DATAWAVE_IMG}
     restart: "no"
     volumes:
-      - ${YUM_FILE}:/etc/yum.repos.d/custom.repo:z
-      - ${CONF_DIR}/genders:/etc/genders:z
+      - ${DATAWAVE_LOG_DIR}:/srv/logs/ingest:z
+      - ${YUM_FILE}:/etc/yum.repos.d/custom.repo:ro
+      - ${CONF_DIR}/genders:/etc/genders:ro
       - ${CERT_DIR}:/etc/pki/private:ro
-      - ${CONF_DIR}/common/*:/opt/datawave:z
+      - ${CONF_DIR}/common/99-accumulo.conf:/opt/datawave/99-accumulo.conf:ro
+      - ${CONF_DIR}/common/99-datawave.conf:/opt/datawave/99-datawave.conf:ro
+      - ${CONF_DIR}/common/99-hadoop.conf:/opt/datawave/99-hadoop.conf:ro
+      - ${CONF_DIR}/common/99-zookeeper.conf:/opt/datawave/99-zookeeper.conf:ro
+      - ${CONF_DIR}/common/datawave.sh:/opt/datawave/datawave.sh:ro
       - ${CONF_DIR}/flavor/hadoop/2:/opt/datawave/hadoop/conf:z
       - ${CONF_DIR}/flavor/accumulo:/opt/datawave/accumulo/conf:z
       - ${CONF_DIR}/flavor/zookeeper:/opt/datawave/zookeeper/conf:z

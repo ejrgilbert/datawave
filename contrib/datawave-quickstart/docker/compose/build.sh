@@ -9,23 +9,6 @@ source "${THIS_DIR}/util/build.env"
 # shellcheck disable=SC1090
 source "${THIS_DIR}/util/logging.sh"
 
-# Define some variables for docker-compose deployment use
-DATAWAVE_BASE_IMG="datawave_base"
-DATAWAVE_BASE_VERSION="1.0.0"
-
-# Ports to expose in the deployment
-ZOO_PORT=2181
-HADOOP_NAMENODE_PORT=50070
-ACCUMULO_MASTER_PORT=9999
-ACCUMULO_MONITOR_PORT=50095
-HADOOP_DATANODE_PORT=50075
-
-# Mounted files/directories locations
-CERT_DIR=${THIS_DIR}/certs
-CONF_DIR=${THIS_DIR}/conf
-YUM_FILE=${THIS_DIR}/yum/custom.repo
-YUM_REPO=${THIS_DIR}/yum/repo
-
 # Define variables in `.env` file
 rm "${DEPLOY_ENV}"
 {
@@ -41,6 +24,10 @@ rm "${DEPLOY_ENV}"
     echo "export CONF_DIR=${CONF_DIR}"
     echo "export YUM_FILE=${YUM_FILE}"
     echo "export YUM_REPO=${YUM_REPO}"
+    echo "export ZOO_LOG_DIR=${ZOO_LOG_DIR}"
+    echo "export HADOOP_LOG_DIR=${HADOOP_LOG_DIR}"
+    echo "export ACCUMULO_LOG_DIR=${ACCUMULO_LOG_DIR}"
+    echo "export DATAWAVE_LOG_DIR=${DATAWAVE_LOG_DIR}"
 } >>"${DEPLOY_ENV}"
 
 header "Datawave Build/Deploy Script"
@@ -70,8 +57,7 @@ function build_rpm() {
     if [[ ${BUILD_DOCS} == "true" ]]; then
         _extra_args="${_extra_args} -Ddist"
     fi
-    echo "mvn ${BUILD_PROFILES} -Ddeploy -Dtar ${_extra_args} clean install"
-    exit 0
+
     mvn ${BUILD_PROFILES} -Ddeploy -Dtar ${_extra_args} clean install || \
         error_exit "Build failed..."
     popd >/dev/null || error_exit "Could not change dirs"

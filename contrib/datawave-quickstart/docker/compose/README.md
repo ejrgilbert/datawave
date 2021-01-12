@@ -105,7 +105,7 @@ Run `compose-ctl.sh help` to read the script usage.
 
 ```bash
 # Stop the compose cluster, build a new RPM and start up a new deployment that will persist the Accumulo data
-./compose-ctl.sh stack stop
+./compose-ctl.sh stack down
 ./build.sh --deploy --persist
 ```
 
