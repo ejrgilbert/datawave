@@ -5,30 +5,7 @@ DATAWAVE_DIR=$(realpath "${THIS_DIR}/../../../..")
 DEPLOY_ENV="${THIS_DIR}/.env"
 
 # shellcheck disable=SC1090
-source "${THIS_DIR}/util/build.env"
-# shellcheck disable=SC1090
 source "${THIS_DIR}/util/logging.sh"
-
-# Define variables in `.env` file
-rm "${DEPLOY_ENV}"
-{
-    echo "export DATAWAVE_BASE_VERSION=${DATAWAVE_BASE_VERSION}"
-
-    echo "export ZOO_PORT=${ZOO_PORT}"
-    echo "export HADOOP_NAMENODE_PORT=${HADOOP_NAMENODE_PORT}"
-    echo "export ACCUMULO_MASTER_PORT=${ACCUMULO_MASTER_PORT}"
-    echo "export ACCUMULO_MONITOR_PORT=${ACCUMULO_MONITOR_PORT}"
-    echo "export HADOOP_DATANODE_PORT=${HADOOP_DATANODE_PORT}"
-
-    echo "export CERT_DIR=${CERT_DIR}"
-    echo "export CONF_DIR=${CONF_DIR}"
-    echo "export YUM_FILE=${YUM_FILE}"
-    echo "export YUM_REPO=${YUM_REPO}"
-    echo "export ZOO_LOG_DIR=${ZOO_LOG_DIR}"
-    echo "export HADOOP_LOG_DIR=${HADOOP_LOG_DIR}"
-    echo "export ACCUMULO_LOG_DIR=${ACCUMULO_LOG_DIR}"
-    echo "export DATAWAVE_LOG_DIR=${DATAWAVE_LOG_DIR}"
-} >>"${DEPLOY_ENV}"
 
 header "Datawave Build/Deploy Script"
 
@@ -67,12 +44,11 @@ function deploy_rpm() {
     echo "Deploying RPM..."
     # shellcheck disable=SC2086
     rm -f ${YUM_REPO}/*.rpm
-    RPM=$(find "${DATAWAVE_DIR}" -name "*.rpm" 2>/dev/null | grep datawave-dw-compose)
+    RPM=$(find "${DATAWAVE_DIR}" -name "*.rpm" 2>/dev/null | grep datawave-dw-compose | grep -v ${THIS_DIR})
     [[ -z ${RPM} ]] && error_exit "Could not find build RPM...exiting..."
     echo "Using RPM at: $RPM"
-    cp "${RPM}" "${YUM_REPO}" || \
+    cp "${RPM}" "${IN_CONTAINER_YUM_REPO}" || \
         error_exit "Could not stage RPM in docker-compose yum repo"
-
     # Define variables needed in deployment
     DATAWAVE_IMG="${DATAWAVE_BASE_IMG}:${DATAWAVE_BASE_VERSION}"
 
@@ -158,6 +134,14 @@ while (( "$#" )); do
             BUILD_PROFILES="$1"
             shift
             ;;
+        -l|--host-volume-location)
+            if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+                DIR=$2
+                shift 2
+            else
+                error_exit "Argument required for $1"
+            fi
+            ;;
         -d|--deploy)
             DEPLOY_RPM="true"
             shift
@@ -186,6 +170,29 @@ while (( "$#" )); do
             ;;
     esac
 done
+
+# shellcheck disable=SC1090
+source "${THIS_DIR}/util/build.env"
+# Define variables in `.env` file
+rm "${DEPLOY_ENV}"
+{
+    echo "export DATAWAVE_BASE_VERSION=${DATAWAVE_BASE_VERSION}"
+
+    echo "export ZOO_PORT=${ZOO_PORT}"
+    echo "export HADOOP_NAMENODE_PORT=${HADOOP_NAMENODE_PORT}"
+    echo "export ACCUMULO_MASTER_PORT=${ACCUMULO_MASTER_PORT}"
+    echo "export ACCUMULO_MONITOR_PORT=${ACCUMULO_MONITOR_PORT}"
+    echo "export HADOOP_DATANODE_PORT=${HADOOP_DATANODE_PORT}"
+
+    echo "export CERT_DIR=${CERT_DIR}"
+    echo "export CONF_DIR=${CONF_DIR}"
+    echo "export YUM_FILE=${YUM_FILE}"
+    echo "export YUM_REPO=${YUM_REPO}"
+    echo "export ZOO_LOG_DIR=${ZOO_LOG_DIR}"
+    echo "export HADOOP_LOG_DIR=${HADOOP_LOG_DIR}"
+    echo "export ACCUMULO_LOG_DIR=${ACCUMULO_LOG_DIR}"
+    echo "export DATAWAVE_LOG_DIR=${DATAWAVE_LOG_DIR}"
+} >>"${DEPLOY_ENV}"
 
 if [[ -n ${TAG} ]]; then
     run_tag_deployment

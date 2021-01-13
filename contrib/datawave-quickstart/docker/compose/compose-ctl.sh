@@ -5,7 +5,6 @@ THIS_DIR=$(dirname "$(realpath "$0")")
 source "${THIS_DIR}/util/logging.sh"
 source "${THIS_DIR}/util/build.env"
 source "${THIS_DIR}/.env"
-export
 ZOO="zoo"
 HADOOP="hadoop"
 ACCUMULO="accumulo"
