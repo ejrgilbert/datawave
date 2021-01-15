@@ -15,7 +15,7 @@ they are extracted and installed under the quickstart home directory, and all
 are owned/executed by the current user
 
 * Docker alternative: rather than installing and running services locally, you may prefer
-to run the entire [quickstart environment as a Docker container](docker/README.md). This will
+to run the entire [quickstart environment as a Docker container](docker/standalone/README.md). This will
 provide the exact same capabilities described below, but hosted on a CentOS 7 base image.
 
 ---

@@ -45,7 +45,7 @@ deploy_and_test:
   script:
     - export DW_DATAWAVE_BUILD_COMMAND
     - TAG="$(mvn -q -N -Dexec.executable='echo' -Dexec.args='${project.version}' exec:exec)"
-    - contrib/datawave-quickstart/docker/docker-build.sh ${TAG} --docker-opts "${DOCKER_BUILD_OPTS}"
+    - contrib/datawave-quickstart/standalone/docker/docker-build.sh ${TAG} --docker-opts "${DOCKER_BUILD_OPTS}"
     - |
       if [[ "${CI_COMMIT_REF_NAME}" =~ ^release/.*|^master$ ]]
       then

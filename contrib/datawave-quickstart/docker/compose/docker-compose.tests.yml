@@ -1,0 +1,12 @@
+version: "2.1"
+
+services:
+  dw-testing:
+    image: dw-testing:latest
+    container_name: dw-testing
+    hostname: dw-testing
+    restart: "no"
+    volumes:
+      - ${CERT_DIR}:/etc/pki/private:ro
+      - ${CONF_DIR}/flavor/hadoop:/opt/datawave/hadoop/conf
+      - /var/run/docker.sock:/var/run/docker.sock

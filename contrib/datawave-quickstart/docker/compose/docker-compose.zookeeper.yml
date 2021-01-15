@@ -1,0 +1,49 @@
+version: "2.1"
+
+# If we ever want to expose the 2181 port:
+# https://pspdfkit.com/blog/2018/how-to-use-docker-compose-to-run-multiple-instances-of-a-service-in-development/
+
+services:
+  zoo1:
+    extends:
+      file: base_services.yml
+      service: zookeeper
+    container_name: zoo1
+    hostname: zoo1
+    environment:
+      ZOO_MY_ID: 1
+    volumes:
+      - zookeeper_zoo1_data:/zoo/data
+      - zookeeper_zoo1_log:/zoo/log
+
+  zoo2:
+    extends:
+      file: base_services.yml
+      service: zookeeper
+    container_name: zoo2
+    hostname: zoo2
+    environment:
+      ZOO_MY_ID: 2
+    volumes:
+      - zookeeper_zoo2_data:/zoo/data
+      - zookeeper_zoo2_log:/zoo/log
+
+  zoo3:
+    extends:
+      file: base_services.yml
+      service: zookeeper
+    container_name: zoo3
+    hostname: zoo3
+    environment:
+      ZOO_MY_ID: 3
+    volumes:
+      - zookeeper_zoo3_data:/zoo/data
+      - zookeeper_zoo3_log:/zoo/log
+
+volumes:
+  zookeeper_zoo1_data:
+  zookeeper_zoo1_log:
+  zookeeper_zoo2_data:
+  zookeeper_zoo2_log:
+  zookeeper_zoo3_data:
+  zookeeper_zoo3_log:

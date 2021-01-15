@@ -5,7 +5,7 @@
 * Provide a containerized, standalone DataWave environment to jumpstart the learning process for new users
 
 * Provide a fully-configured dev environment for developers to use for experimentation, debugging, etc. That is,
-  the Docker image retains the same layout and functionality of the [non-Docker quickstart environment](../README.md).
+  the Docker image retains the same layout and functionality of the [non-Docker quickstart environment](../../README.md).
   For convenience, the image will also include Maven for rebuilding DataWave and Git for source code management
 
 * Enable streamlined testing and integration workflows for various CI/CD needs 

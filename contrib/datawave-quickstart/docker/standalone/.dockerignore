@@ -18,7 +18,7 @@
 # Ignore temporary .dockerignore symlink in the root directory...
 .dockerignore
 # ...but don't ignore the actual .dockerignore file
-!**/datawave-quickstart/docker/.dockerignore
+!**/datawave-quickstart/docker/standalone/.dockerignore
 
 # Below, we mostly just ignore enviromnent-specific stuff that may have
 # already been initialized under **/datawave-quickstart
