@@ -90,14 +90,14 @@ Run `compose-ctl.sh help` to read the script usage.
 
 ```bash
 # Do a build and see if it is successful
-./build.sh
+./build.sh -l /path/to/mount/configs
 ```
 
 > "Great! It compiles! But I need to see if I can actually ingest data with it..."
 
 ```bash
 # We just built the RPM, so let's skip that part just do a deployment
-./build.sh --skip-build --deploy
+./build.sh --skip-build --deploy -l /path/to/mount/configs
 ```
 
 > "Oh shoot! I messed up something in my code...let's retry that...
@@ -106,9 +106,8 @@ Run `compose-ctl.sh help` to read the script usage.
 ```bash
 # Stop the compose cluster, build a new RPM and start up a new deployment that will persist the Accumulo data
 ./compose-ctl.sh stack down
-./build.sh --deploy --persist
+./build.sh --deploy --persist -l /path/to/mount/configs
 ```
-
 #### ex2 ####
 
 > "Looks like my compose cluster is down since my box got shut down when I left work...
@@ -126,7 +125,7 @@ Run `compose-ctl.sh help` to read the script usage.
 
 ```bash
 # Start up a new docker-compose deployment for Datawave version 2.8.8
-./build.sh --version 2.8.8
+./build.sh --version 2.8.8 -l /path/to/mount/configs
 ```
 
 > "Let's see if the cluster finished starting up."
